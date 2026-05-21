@@ -1,0 +1,17 @@
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+.env
+.venv
+venv/
+logs/
+debug/
+*.log
+.DS_Store
+*.swp
+config/settings.json
+config/last_profile.txt
+config/coordinates.json
+templates/*.png
