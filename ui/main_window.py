@@ -1,13 +1,14 @@
 """
-Main control panel window (customtkinter, 480×760, dark theme).
+Main control panel window (customtkinter, 480×800, dark theme).
 
 Layout (top to bottom):
   1. Title bar
   2. Status pill + runtime timer
   3. Info grid: State / Field / Backpack / Task counts
   4. Control buttons: Start | Pause | Stop | Debug | Calibration
-  5. Profile editor (collapsible)
-  6. Log console
+  5. Calibration checklist (collapsible, shows green/red status)
+  6. Profile editor (collapsible)
+  7. Log console
 
 All UI updates happen via after() — never blocked by background threads.
 """
@@ -22,6 +23,7 @@ from state.fsm import IDLE, FARMING, PAUSED
 from services.farming_service import FarmingService
 from ui.profile_editor import ProfileEditor
 from ui.log_console import LogConsole
+from calibration.checklist import get_checklist
 from utils.logger import get_logger
 
 log = get_logger(__name__)
@@ -56,13 +58,14 @@ class MainWindow(ctk.CTk):
         ctk.set_default_color_theme("dark-blue")
 
         self.title("BeeSwarm Local Macro")
-        self.geometry("480x760")
+        self.geometry("480x820")
         self.resizable(False, False)
         self.protocol("WM_DELETE_WINDOW", self._on_close)
 
         self._build_ui()
         self._sm.subscribe(self._on_state_changed)
         self._start_ui_update_loop()
+        self.after(800, self._maybe_launch_wizard)
 
     # ------------------------------------------------------------------ #
     # UI Construction                                                      #
@@ -167,6 +170,30 @@ class MainWindow(ctk.CTk):
             command=self._open_calibration,
         ).pack(side="right", padx=4)
 
+        # ---- Calibration checklist (collapsible) ----
+        checklist_header = ctk.CTkFrame(self, fg_color="transparent")
+        checklist_header.pack(fill="x", padx=10, pady=(4, 0))
+
+        self._checklist_toggle_btn = ctk.CTkButton(
+            checklist_header, text="▼ Calibration Status", width=200, height=26,
+            fg_color="transparent", hover_color="#374151", anchor="w",
+            command=self._toggle_checklist,
+        )
+        self._checklist_toggle_btn.pack(side="left")
+
+        self._wizard_btn = ctk.CTkButton(
+            checklist_header, text="Run Setup Wizard", width=140, height=26,
+            fg_color="#1d4ed8", hover_color="#1e40af",
+            command=self._open_wizard,
+        )
+        self._wizard_btn.pack(side="right")
+
+        self._checklist_frame = ctk.CTkFrame(self, corner_radius=6)
+        self._checklist_frame.pack(fill="x", padx=10, pady=2)
+        self._checklist_visible = True
+        self._checklist_rows: list = []
+        self._build_checklist()
+
         # ---- Profile editor (collapsible) ----
         profile_header = ctk.CTkFrame(self, fg_color="transparent")
         profile_header.pack(fill="x", padx=10, pady=(4, 0))
@@ -238,6 +265,83 @@ class MainWindow(ctk.CTk):
         from calibration.calibration_tool import CalibrationWindow
         CalibrationWindow(self)
 
+    def _open_wizard(self) -> None:
+        from calibration.setup_wizard import SetupWizard
+        SetupWizard(self)
+
+    # ------------------------------------------------------------------ #
+    # Calibration checklist                                                #
+    # ------------------------------------------------------------------ #
+
+    def _build_checklist(self) -> None:
+        for w in self._checklist_frame.winfo_children():
+            w.destroy()
+        self._checklist_rows = []
+
+        items = get_checklist()
+        for i, item in enumerate(items):
+            row = ctk.CTkFrame(self._checklist_frame, fg_color="transparent")
+            row.pack(fill="x", padx=8, pady=1)
+
+            indicator = ctk.CTkLabel(
+                row,
+                text="●",
+                font=ctk.CTkFont(size=12),
+                text_color="#22c55e" if item.ok else "#ef4444",
+                width=18,
+            )
+            indicator.pack(side="left")
+
+            ctk.CTkLabel(
+                row,
+                text=item.label,
+                font=ctk.CTkFont(size=11),
+                anchor="w",
+                width=220,
+            ).pack(side="left", padx=4)
+
+            ctk.CTkLabel(
+                row,
+                text=item.detail,
+                font=ctk.CTkFont(size=10),
+                text_color="#6b7280",
+                anchor="w",
+            ).pack(side="left")
+
+            if not item.ok:
+                fix_btn = ctk.CTkButton(
+                    row, text="Fix", width=40, height=20,
+                    fg_color="#374151", hover_color="#4b5563",
+                    font=ctk.CTkFont(size=10),
+                    command=lambda k=item.key, cat=item.category: self._fix_item(k, cat),
+                )
+                fix_btn.pack(side="right", padx=4)
+
+            self._checklist_rows.append((item, row))
+
+    def _fix_item(self, key: str, category: str) -> None:
+        """Open wizard at the relevant step, or open calibration tool."""
+        from calibration.setup_wizard import SetupWizard, _STEPS
+        for i, step in enumerate(_STEPS):
+            if step.get("key") == key:
+                SetupWizard(self, start_step=i)
+                return
+        from calibration.calibration_tool import CalibrationWindow
+        CalibrationWindow(self)
+
+    def _toggle_checklist(self) -> None:
+        if self._checklist_visible:
+            self._checklist_frame.pack_forget()
+            self._checklist_toggle_btn.configure(text="▶ Calibration Status")
+        else:
+            self._checklist_frame.pack(fill="x", padx=10, pady=2,
+                                       before=self._profile_frame)
+            self._checklist_toggle_btn.configure(text="▼ Calibration Status")
+        self._checklist_visible = not self._checklist_visible
+
+    def _refresh_checklist(self) -> None:
+        self._build_checklist()
+
     def _toggle_profile(self) -> None:
         if self._profile_visible:
             self._profile_frame.pack_forget()
@@ -246,6 +350,12 @@ class MainWindow(ctk.CTk):
             self._profile_frame.pack(fill="x", padx=10, pady=2, before=self._log_console)
             self._profile_toggle_btn.configure(text="▼ Profile Settings")
         self._profile_visible = not self._profile_visible
+
+    def _maybe_launch_wizard(self) -> None:
+        from calibration.setup_wizard import should_show_wizard, SetupWizard
+        if should_show_wizard():
+            log.info("Calibration incomplete — launching setup wizard")
+            SetupWizard(self)
 
     def _on_profile_loaded(self, profile: dict) -> None:
         log.info("Profile loaded in UI: '%s'", profile.get("name"))
@@ -256,6 +366,7 @@ class MainWindow(ctk.CTk):
 
     def _start_ui_update_loop(self) -> None:
         self._update_ui()
+        self.after(5000, self._refresh_checklist_periodic)
 
     def _update_ui(self) -> None:
         snap = self._sm.snapshot()
@@ -275,6 +386,10 @@ class MainWindow(ctk.CTk):
         self._mob_val.configure(text=str(snap["mob_run_count"]))
 
         self.after(500, self._update_ui)
+
+    def _refresh_checklist_periodic(self) -> None:
+        self._build_checklist()
+        self.after(5000, self._refresh_checklist_periodic)
 
     def _on_state_changed(self) -> None:
         # Called from bg thread — schedule UI update on main thread
