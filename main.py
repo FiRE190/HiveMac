@@ -2,158 +2,94 @@
 BeeSwarm Local Macro — entry point.
 
 Startup flow:
-  1. scaffold_project() — create dirs, default files, git init
+  1. scaffold_project()          — dirs, configs, git init (idempotent)
   2. init_logging()
-  3. check_dependencies() — print warnings for missing packages
+  3. check_dependencies()        — warn on missing packages, auto-install if possible
   4. ConfigManager.load()
   5. ProfileManager (auto-loads last profile)
-  6. FarmingService init
-  7. Watchdog start
-  8. MainWindow.mainloop()
+  6. FarmingService + Watchdog init
+  7. MainWindow.mainloop()
+
+The UI then runs the setup wizard / permission guide on first run.
 """
-import os
-import subprocess
 import sys
+import subprocess
 from pathlib import Path
 
 ROOT = Path(__file__).parent
+sys.path.insert(0, str(ROOT))
 
 
-# ------------------------------------------------------------------ #
-# Step 1: Scaffold                                                     #
-# ------------------------------------------------------------------ #
+# ── Step 1: Scaffold (before any other import that might fail) ─────────
 
-def scaffold_project() -> None:
-    """Create all required directories and seed missing config files."""
-    dirs = [
-        "config", "state", "profiles", "detection", "ocr",
-        "movement", "tasks", "services", "calibration", "ui",
-        "utils", "debug", "logs", "templates",
-    ]
-    for d in dirs:
-        (ROOT / d).mkdir(exist_ok=True)
-
-    # Seed coordinates file
-    coords_path = ROOT / "config" / "coordinates.json"
-    if not coords_path.exists():
-        coords_path.write_text("{}", encoding="utf-8")
-
-    # Seed .gitignore
-    gitignore_path = ROOT / ".gitignore"
-    if not gitignore_path.exists():
-        gitignore_path.write_text(
-            "__pycache__/\n*.pyc\n*.pyo\n.env\nlogs/\ndebug/\n*.log\n.DS_Store\n",
-            encoding="utf-8",
-        )
-
-    # Git init (safe to call multiple times)
-    git_dir = ROOT / ".git"
-    if not git_dir.exists():
-        try:
-            subprocess.run(["git", "init", str(ROOT)], check=True, capture_output=True)
-            print("[scaffold] Git repository initialized")
-        except Exception as e:
-            print(f"[scaffold] Warning: git init failed: {e}")
-
-    print("[scaffold] Project structure ready")
+def _bootstrap() -> None:
+    """Run project scaffold and dependency check before loading app modules."""
+    from setup.auto_setup import run_full_setup
+    run_full_setup(verbose=True)
 
 
-# ------------------------------------------------------------------ #
-# Step 2: Dependency check                                             #
-# ------------------------------------------------------------------ #
+def _check_and_install_deps() -> bool:
+    """Check deps; auto-install missing ones into the current environment."""
+    from setup.env_checker import check_all, install_missing_packages, print_report
+    status = check_all()
+    print_report(status)
 
-REQUIRED_PACKAGES = {
-    "customtkinter": "customtkinter",
-    "cv2":           "opencv-python",
-    "pyautogui":     "pyautogui",
-    "mss":           "mss",
-    "PIL":           "Pillow",
-    "pytesseract":   "pytesseract",
-    "numpy":         "numpy",
-    "pynput":        "pynput",
-}
+    if status.missing_packages:
+        print(f"\n[*] Auto-installing {len(status.missing_packages)} missing package(s)...")
+        ok = install_missing_packages(status.missing_packages)
+        if ok:
+            print("[✓] Packages installed successfully\n")
+        else:
+            print("[!] Some packages could not be installed automatically.")
+            print("    Run manually: pip install -r requirements.txt\n")
+        return ok
 
-
-def check_dependencies() -> bool:
-    missing = []
-    for module, package in REQUIRED_PACKAGES.items():
-        try:
-            __import__(module)
-        except ImportError:
-            missing.append(package)
-
-    if missing:
-        print("\n[!] Missing Python packages:")
-        for p in missing:
-            print(f"    pip3 install {p}")
-        print("\nRun:  bash install.sh\n")
-
-    # Check tesseract
-    try:
-        result = subprocess.run(
-            ["tesseract", "--version"],
-            capture_output=True, text=True, timeout=5,
-        )
-        if result.returncode != 0:
-            raise FileNotFoundError
-    except (FileNotFoundError, subprocess.TimeoutExpired):
-        print("[!] tesseract not found. Run: brew install tesseract")
-        missing.append("tesseract")
-
-    return len(missing) == 0
+    return status.packages_ok
 
 
-# ------------------------------------------------------------------ #
-# Step 3: macOS permissions advisory                                   #
-# ------------------------------------------------------------------ #
-
-def check_permissions() -> None:
-    print("[*] Reminder: ensure these macOS permissions are granted:")
-    print("    System Settings > Privacy & Security > Screen Recording → Python / Terminal")
-    print("    System Settings > Privacy & Security > Accessibility → Python / Terminal")
-    print("    (The macro cannot function without these permissions)\n")
-
-
-# ------------------------------------------------------------------ #
-# Main                                                                 #
-# ------------------------------------------------------------------ #
+# ── Main ──────────────────────────────────────────────────────────────
 
 def main() -> None:
-    scaffold_project()
+    print("=" * 50)
+    print("  BeeSwarm Local Macro")
+    print("=" * 50)
+    print()
 
-    # Bootstrap logging before anything else
-    sys.path.insert(0, str(ROOT))
-    from utils.logger import init_logging
+    # 1. Scaffold
+    _bootstrap()
+
+    # 2. Logging
+    from utils.logger import init_logging, get_logger
     init_logging(str(ROOT / "logs"))
-
-    from utils.logger import get_logger
     log = get_logger("main")
-    log.info("BeeSwarm Local Macro starting up")
+    log.info("BeeSwarm Local Macro starting")
 
-    ok = check_dependencies()
-    if not ok:
-        print("[!] Some dependencies are missing — OCR and detection will not work.")
-        print("    The UI will still launch so you can install dependencies.\n")
+    # 3. Dependencies
+    deps_ok = _check_and_install_deps()
+    if not deps_ok:
+        log.warning("Some dependencies are missing — functionality will be limited")
 
-    check_permissions()
-
+    # 4. Config
     from config.config_manager import get_config
     cfg = get_config()
     cfg.load()
 
+    # 5. Services
     from services.farming_service import FarmingService
     farming_service = FarmingService()
 
+    # 6. Watchdog
     from utils.watchdog import Watchdog
     watchdog = Watchdog(stop_callback=farming_service.stop)
     watchdog.start()
 
+    # 7. Launch UI
     log.info("Launching control panel")
     from ui.main_window import MainWindow
     window = MainWindow(farming_service)
     window.mainloop()
 
-    # Cleanup on window close
+    # Cleanup
     watchdog.stop()
     farming_service.stop()
     log.info("Macro shut down cleanly")

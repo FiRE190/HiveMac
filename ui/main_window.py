@@ -233,9 +233,48 @@ class MainWindow(ctk.CTk):
 
     def _on_start(self) -> None:
         profile = self._profile_editor.get_active_profile()
+
+        # Run validation — block on hard failures, warn on soft ones
+        from calibration.validation import run_validation
+        report = run_validation(profile)
+
+        if not report.can_start:
+            self._show_validation_block(report)
+            return
+
         self._svc.start(profile)
         self._update_button_states(running=True)
         log.info("UI: Start pressed (profile='%s')", profile.get("name"))
+
+    def _show_validation_block(self, report) -> None:
+        """Show a blocking dialog listing what must be fixed before starting."""
+        win = ctk.CTkToplevel(self)
+        win.title("Cannot Start")
+        win.geometry("440x320")
+        win.resizable(False, False)
+        win.attributes("-topmost", True)
+        win.grab_set()
+
+        ctk.CTkLabel(win, text="Resolve these issues before starting:",
+                     font=ctk.CTkFont(size=13, weight="bold")).pack(pady=(16, 8))
+
+        frame = ctk.CTkScrollableFrame(win, height=180)
+        frame.pack(fill="x", padx=16, pady=4)
+
+        for item in report.blocking_failures:
+            row = ctk.CTkFrame(frame, fg_color="transparent")
+            row.pack(fill="x", pady=2)
+            ctk.CTkLabel(row, text="✗", text_color="#ef4444", width=20).pack(side="left")
+            ctk.CTkLabel(row, text=item.name, width=180, anchor="w").pack(side="left")
+            ctk.CTkLabel(row, text=item.fix_hint, text_color="#9ca3af",
+                         font=ctk.CTkFont(size=10), wraplength=200, justify="left").pack(side="left", padx=4)
+
+        btn_row = ctk.CTkFrame(win, fg_color="transparent")
+        btn_row.pack(pady=12)
+        ctk.CTkButton(btn_row, text="Open Calibration", width=150,
+                      command=lambda: [win.destroy(), self._open_calibration()]).pack(side="left", padx=6)
+        ctk.CTkButton(btn_row, text="Close", width=80,
+                      fg_color="#374151", command=win.destroy).pack(side="left", padx=6)
 
     def _on_pause(self) -> None:
         state = self._sm.current_state
@@ -262,8 +301,9 @@ class MainWindow(ctk.CTk):
         log.info("Debug mode: %s", "ON" if enabled else "OFF")
 
     def _open_calibration(self) -> None:
-        from calibration.calibration_tool import CalibrationWindow
-        CalibrationWindow(self)
+        from calibration.auto_calibration_window import AutoCalibrationWindow
+        profile = self._profile_editor.get_active_profile()
+        AutoCalibrationWindow(self, profile)
 
     def _open_wizard(self) -> None:
         from calibration.setup_wizard import SetupWizard
@@ -352,6 +392,14 @@ class MainWindow(ctk.CTk):
         self._profile_visible = not self._profile_visible
 
     def _maybe_launch_wizard(self) -> None:
+        from setup.env_checker import _check_screen_recording, _check_accessibility
+        sr = _check_screen_recording()
+        ax = _check_accessibility()
+        if sr is False or ax is False:
+            from setup.permission_checker import show_permission_guide_window
+            show_permission_guide_window(self)
+            return
+
         from calibration.setup_wizard import should_show_wizard, SetupWizard
         if should_show_wizard():
             log.info("Calibration incomplete — launching setup wizard")
