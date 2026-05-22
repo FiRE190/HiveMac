@@ -127,6 +127,18 @@ class AutoCalibrationWindow(ctk.CTkToplevel):
         self._bp_detail = ctk.CTkLabel(self._bp_frame, text="Not checked", text_color="#6b7280", font=ctk.CTkFont(size=11))
         self._bp_detail.pack(anchor="w", padx=10, pady=(0, 8))
 
+        # Movement speed
+        self._speed_frame = ctk.CTkFrame(tab, corner_radius=6)
+        self._speed_frame.pack(fill="x", padx=8, pady=4)
+        top4 = ctk.CTkFrame(self._speed_frame, fg_color="transparent")
+        top4.pack(fill="x", padx=10, pady=(8, 2))
+        self._speed_dot = ctk.CTkLabel(top4, text="●", font=ctk.CTkFont(size=13), text_color="#6b7280")
+        self._speed_dot.pack(side="left")
+        ctk.CTkLabel(top4, text="Movement Speed (Adaptive Base)", font=ctk.CTkFont(weight="bold")).pack(side="left", padx=6)
+        self._speed_detail = ctk.CTkLabel(self._speed_frame, text="Not measured", text_color="#6b7280", font=ctk.CTkFont(size=11))
+        self._speed_detail.pack(anchor="w", padx=10, pady=(0, 8))
+        self._update_speed_status()
+
         # Progress bar
         self._auto_progress = ctk.CTkProgressBar(tab, width=500)
         self._auto_progress.set(0)
@@ -140,7 +152,11 @@ class AutoCalibrationWindow(ctk.CTkToplevel):
         self._auto_btn = ctk.CTkButton(btn_row, text="Run Auto-Detection", width=180,
                                         command=self._run_auto_detect)
         self._auto_btn.pack(side="left", padx=6)
-        ctk.CTkButton(btn_row, text="Focus Roblox", width=120,
+        self._speed_btn = ctk.CTkButton(btn_row, text="Calibrate Speed", width=140,
+                                         fg_color="#374151", hover_color="#4b5563",
+                                         command=self._run_speed_calibration)
+        self._speed_btn.pack(side="left", padx=6)
+        ctk.CTkButton(btn_row, text="Focus Roblox", width=110,
                       fg_color="#374151", hover_color="#4b5563",
                       command=self._focus_roblox).pack(side="left", padx=6)
 
@@ -341,6 +357,55 @@ class AutoCalibrationWindow(ctk.CTkToplevel):
 
     def _focus_roblox(self) -> None:
         focus_roblox()
+
+    def _run_speed_calibration(self) -> None:
+        """Hold W for 2 seconds and measure optical-flow base speed."""
+        if not is_roblox_running():
+            self._auto_status.configure(text="Open Roblox first — stand in an open field")
+            return
+
+        self._speed_btn.configure(state="disabled", text="Calibrating...")
+        self._auto_status.configure(text="Holding W for 2 seconds — stand in the field, no walls nearby")
+
+        stop_evt = threading.Event()
+
+        def _run():
+            from movement.speed_calibrator import SpeedCalibrator
+            cal   = SpeedCalibrator()
+            speed = cal.calibrate(stop_evt)
+            self.after(0, lambda: self._on_speed_calibrated(speed))
+
+        threading.Thread(target=_run, daemon=True).start()
+
+    def _on_speed_calibrated(self, speed: float) -> None:
+        self._speed_btn.configure(state="normal", text="Calibrate Speed")
+        if speed > 0:
+            self._speed_dot.configure(text_color="#22c55e")
+            self._speed_detail.configure(
+                text=f"Base speed: {speed:.1f} px/s — adaptive bursts calibrated",
+                text_color="#9ca3af",
+            )
+            self._auto_status.configure(text=f"Speed calibration complete ({speed:.1f} px/s)")
+        else:
+            self._speed_dot.configure(text_color="#ef4444")
+            self._speed_detail.configure(
+                text="Calibration failed — ensure Roblox is focused and cv2 is installed",
+                text_color="#ef4444",
+            )
+
+    def _update_speed_status(self) -> None:
+        """Populate speed card from cached config value on window open."""
+        try:
+            from config.config_manager import get_config
+            speed = get_config().get("movement.base_speed_px_s", 0)
+            if speed:
+                self._speed_dot.configure(text_color="#22c55e")
+                self._speed_detail.configure(
+                    text=f"Base speed: {float(speed):.1f} px/s (cached)",
+                    text_color="#9ca3af",
+                )
+        except Exception:
+            pass
 
     # ------------------------------------------------------------------ #
     # Hive actions                                                         #
