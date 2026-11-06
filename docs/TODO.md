@@ -23,6 +23,12 @@ field boosters (45 min), honeystorm (4 h), ant pass (2 h), robo pass (22 h), dai
 - Calibration tools: record a walk, template capture.
 - Hive profile outputs: recommended fields per colour and an estimate per field (labelled estimate).
 
+## Future idea (not scoped, maybe too much for now)
+A very simple website with just sign in and sign up, where you press Start and a few other basics to
+control the macro from anywhere. Today the phone remote page covers this on the same Wi-Fi or Tailscale
+without any account. A website would need a cloud relay between the site and the Mac, plus real auth.
+Only worth it if the phone page is not enough.
+
 ## Checks
 - Idle, window open, measured 2026-11-05: 30 MB real footprint, 0.0% CPU, 5 threads, 2.3 MB on disk (Python app: about 156 MB, 1.4% CPU, 60 MB on disk). Still to measure: while running a farm loop.
 - First live session: `docs/LIVE_TEST_CHECKLIST.md`. Includes: does Esc R Enter empty the backpack?

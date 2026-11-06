@@ -63,6 +63,7 @@ final class AppModel: ObservableObject {
     @Published var live = LiveReadings()
     @Published var profile = Profile()
     @Published var runs: [RunEntry] = []
+    @Published var mobTimers = MobTimers()
     @Published var activeRunFile = "default_profile.json"
     @Published var hive = HiveProfile()
     @Published var stopKeyName = "f9"
@@ -95,6 +96,7 @@ final class AppModel: ObservableObject {
         profile = (try? Profile.load(dirs.profiles.appendingPathComponent(activeRunFile))) ?? Profile()
         hive = HiveProfile(store: store)
         refreshRuns()
+        mobTimers = MobTimers.load(dirs.data.appendingPathComponent("mob_timers.json"))
         logFile = AppModel.openLog(dirs.logs.appendingPathComponent("hivemac.log"))
         stopKeyName = store.string("app.emergency_stop_key", "f9")
         hotKey.onPress = { [weak self] in self?.stop() }

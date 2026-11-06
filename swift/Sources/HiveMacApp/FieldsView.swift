@@ -50,8 +50,8 @@ struct FieldsView: View {
                         Divider().overlay(Theme.grain.opacity(0.6))
                     }
                     if !model.profile.extras.isEmpty {
-                        Text("Between rounds").font(Theme.serif(14)).foregroundStyle(Theme.wax).padding(.top, Theme.s4)
-                        Text("Saved with this run. HiveMac does not run these yet.").font(Theme.caption).foregroundStyle(Theme.dust).padding(.bottom, Theme.s1)
+                        Text("Between rounds").font(Theme.serif(14)).foregroundStyle(Theme.wax).frame(maxWidth: .infinity, alignment: .leading).padding(.top, Theme.s4)
+                        Text("Saved with this run. HiveMac does not run these yet.").font(Theme.caption).foregroundStyle(Theme.dust).frame(maxWidth: .infinity, alignment: .leading).padding(.bottom, Theme.s1)
                         ForEach($model.profile.extras) { $step in
                             ExtraRow(step: $step) { model.profile.extras.removeAll { $0.id == step.id } }
                             Divider().overlay(Theme.grain.opacity(0.6))
@@ -175,6 +175,7 @@ struct FieldRow: View {
 
 
 struct ExtraRow: View {
+    @EnvironmentObject var model: AppModel
     @Binding var step: ExtraStep
     var remove: () -> Void
     @State private var open = true
@@ -205,18 +206,23 @@ struct ExtraRow: View {
 
     private var bugRun: some View {
         VStack(alignment: .leading, spacing: Theme.s2) {
-            HStack(spacing: Theme.s2) {
-                Text("Every").font(Theme.caption).foregroundStyle(Theme.dust)
-                TextField("", value: $step.everyMinutes, format: .number).fieldStyle(width: 56)
-                Text("minutes").font(Theme.caption).foregroundStyle(Theme.dust)
-            }
-            LazyVGrid(columns: [GridItem(.adaptive(minimum: 140), alignment: .leading)], alignment: .leading, spacing: Theme.s2) {
-                ForEach(ExtraStep.bugs, id: \.self) { bug in
+            Text("A mob is only visited once its own timer has run out.").font(Theme.caption).foregroundStyle(Theme.dust)
+            ForEach(ExtraStep.bugs, id: \.self) { bug in
+                HStack(spacing: Theme.s3) {
                     Toggle(bug.capitalized, isOn: Binding(
                         get: { step.bugs.contains(bug) },
                         set: { on in
                             if on { if !step.bugs.contains(bug) { step.bugs.append(bug) } } else { step.bugs.removeAll { $0 == bug } }
-                        })).toggleStyle(.checkbox).font(Theme.body)
+                        })).toggleStyle(.checkbox).font(Theme.body).frame(width: 150, alignment: .leading)
+                    let timed = MobTimers.respawn[bug] != nil
+                    let left = model.mobTimers.remaining(bug, now: Date().timeIntervalSince1970)
+                    Text(MobTimers.describe(remaining: left, timed: timed)).font(Theme.caption)
+                        .foregroundStyle(timed && left == 0 ? Theme.leaf : Theme.dust)
+                    Spacer(minLength: 0)
+                    if let wait = MobTimers.respawn[bug] {
+                        Text("respawns every " + (wait < 3600 ? "\(Int(wait / 60)) min" : "\(Int(wait / 3600)) h"))
+                            .font(Theme.caption).foregroundStyle(Theme.dust)
+                    }
                 }
             }
         }
