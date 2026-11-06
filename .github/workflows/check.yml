@@ -43,3 +43,18 @@ jobs:
         with:
           name: HiveMac.app
           path: build/HiveMac.app
+
+  swift:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Test
+        run: cd swift && swift test
+      - name: Build the native HiveMac.app
+        run: swift/scripts/make-app.sh
+      - name: Check bundle
+        run: |
+          plutil -lint swift/build/HiveMac.app/Contents/Info.plist
+          codesign --verify --verbose swift/build/HiveMac.app
+          test -f swift/build/HiveMac.app/Contents/Resources/HiveMac.icns
+          du -sh swift/build/HiveMac.app

@@ -48,7 +48,7 @@ final class ProfileTests: XCTestCase {
 
     func testExtraStepsRoundTrip() throws {
         var bug = ExtraStep(kind: "bug_run"); bug.bugs = ["werewolf", "king beetle"]; bug.everyMinutes = 45
-        var pl = ExtraStep(kind: "planters"); pl.planterFields = ["rose", "", "clover"]; pl.harvestHours = 6
+        var pl = ExtraStep(kind: "planters"); pl.planterFields = ["rose", "", "clover"]; pl.planterTypes = ["petal", "paper", "candy"]; pl.harvestHours = 6
         let p = Profile(name: "t", fields: [FieldConfig(name: "rose")], extras: [bug, pl])
         let url = FileManager.default.temporaryDirectory.appendingPathComponent("extras-\(UUID().uuidString).json")
         try p.save(to: url); defer { try? FileManager.default.removeItem(at: url) }
@@ -57,6 +57,7 @@ final class ProfileTests: XCTestCase {
         XCTAssertEqual(back.extras[0].bugs, ["werewolf", "king beetle"])
         XCTAssertEqual(back.extras[0].everyMinutes, 45)
         XCTAssertEqual(back.extras[1].planterFields, ["rose", "", "clover"])
+        XCTAssertEqual(back.extras[1].planterTypes, ["petal", "paper", "candy"])
         XCTAssertEqual(back.extras[1].harvestHours, 6)
     }
 }

@@ -44,6 +44,10 @@ public struct ExtraStep: Equatable, Identifiable, Sendable {
     public var everyMinutes = 30.0          // bug run: how often. planters: not used (see harvestHours)
     public var bugs: [String] = ["ladybug", "rhino beetle"]
     public var planterFields: [String] = ["", "", ""]
+    public var planterTypes: [String] = ["paper", "paper", "paper"]
+    /// Natro's 12 planters.
+    public static let planters = ["paper", "ticking", "plastic", "candy", "red clay", "blue clay", "tacky",
+                                  "pesticide", "heat-treated", "hydroponic", "petal", "planter of plenty"]
     public var harvestHours = 4.0
 
     public init(kind: String) { self.kind = kind }
@@ -54,12 +58,13 @@ public struct ExtraStep: Equatable, Identifiable, Sendable {
         if let v = (d["every_minutes"] as? NSNumber)?.doubleValue { everyMinutes = v }
         if let v = d["bugs"] as? [String] { bugs = v }
         if let v = d["planter_fields"] as? [String] { planterFields = (v + ["", "", ""]).prefix(3).map { $0 } }
+        if let v = d["planter_types"] as? [String] { planterTypes = (v + ["paper", "paper", "paper"]).prefix(3).map { $0 } }
         if let v = (d["harvest_hours"] as? NSNumber)?.doubleValue { harvestHours = v }
     }
 
     public var json: [String: Any] {
         ["kind": kind, "enabled": enabled, "every_minutes": everyMinutes, "bugs": bugs,
-         "planter_fields": planterFields, "harvest_hours": harvestHours]
+         "planter_fields": planterFields, "planter_types": planterTypes, "harvest_hours": harvestHours]
     }
 }
 

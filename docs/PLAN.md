@@ -106,3 +106,14 @@ Measured on this Mac (M6, macOS 27.2), Swift native layer, `swift/Sources/hivema
 
 ScreenCaptureKit is kept (the supported API). If the reads ever need to be cheaper, one capture
 of a thin top strip per second can serve both the backpack and health pixels.
+
+
+## Swift app idle measurement (2026-11-05)
+
+| | Python app | Swift app |
+|---|---|---|
+| Memory, window open | about 156 MB | 30 MB (footprint) |
+| CPU, idle | 1.4% | 0.0% |
+| On disk | 60 MB | 2.3 MB |
+
+Measured with `footprint` and `top` on the installed bundle. Not yet measured while farming.

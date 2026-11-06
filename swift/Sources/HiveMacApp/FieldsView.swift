@@ -226,9 +226,12 @@ struct ExtraRow: View {
         VStack(alignment: .leading, spacing: Theme.s2) {
             ForEach(0..<3, id: \.self) { i in
                 HStack(spacing: Theme.s2) {
-                    Text("Planter \(i + 1)").font(Theme.caption).foregroundStyle(Theme.dust).frame(width: 60, alignment: .leading)
+                    Text("Slot \(i + 1)").font(Theme.caption).foregroundStyle(Theme.dust).frame(width: 44, alignment: .leading)
                     Choice(options: [("", "None")] + FieldDefaults.order.map { ($0, $0.capitalized) },
-                           selection: $step.planterFields[i], width: 150)
+                           selection: $step.planterFields[i], width: 140)
+                    Choice(options: ExtraStep.planters.map { ($0, $0.capitalized) },
+                           selection: $step.planterTypes[i], width: 150)
+                        .disabled(step.planterFields[i].isEmpty)
                 }
             }
             HStack(spacing: Theme.s2) {
