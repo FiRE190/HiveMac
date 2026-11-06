@@ -52,15 +52,6 @@ struct CalibrateView: View {
         .onAppear { model.refreshLive() }
     }
 
-    private func readingRow(_ label: String, _ value: String, extra: String? = nil) -> some View {
-        HStack(alignment: .firstTextBaseline, spacing: Theme.s4) {
-            Text(label).font(Theme.body).foregroundStyle(Theme.resin).frame(width: 110, alignment: .leading)
-            Text(value).font(Theme.figure).foregroundStyle(Theme.wax)
-            if let extra { Text(extra).font(Theme.caption).foregroundStyle(Theme.dust) }
-            Spacer()
-        }
-        .frame(minHeight: 28)
-    }
 }
 
 struct PermissionRow: View {

@@ -69,6 +69,9 @@ public struct FieldConfig: Equatable, Sendable {
     public var returnMethod = "walk"
     public var enabled = true
 
+    /// True when the field turns the camera after arriving (and back before leaving).
+    public var rotatesCamera: Bool { (camera == "left" || camera == "right") && turns > 0 }
+
     /// Natro's defaults for the field, with the fields given in `overrides` replacing them.
     public init(name: String) {
         let lower = name.lowercased()
@@ -110,7 +113,6 @@ public final class Game {
 
     public private(set) var shiftLocked = false
     public var died = false
-    public private(set) var lastResetAt = -1e9
 
     public init(actuator: Actuator, sensors: Sensors, settings: GameSettings, clock: Clock,
                 stop: Signal = Signal(), pause: Signal = Signal(),
@@ -170,7 +172,6 @@ public final class Game {
             tap("esc"); wait(s.keyGapS)
             tap("r"); wait(s.keyGapS)
             tap("enter")
-            lastResetAt = clock.now()
             waitForRespawn()
             let extra = (afterDeath || died) ? s.deathExtraWaitS : 0
             died = false
@@ -280,7 +281,7 @@ public final class Game {
                                          distance: f.sprinklerDistance, speed: speed.current()), [:])
         run(Sprinkler.placementSteps(type: s.sprinklerType, location: f.sprinklerLocation,
                                      slotKey: s.sprinklerSlotKey, speed: speed.current()), [:])
-        if (f.camera == "left" || f.camera == "right") && f.turns > 0 {
+        if f.rotatesCamera {
             walker.rotate(f.camera, taps: f.turns, leftKey: s.rotLeft, rightKey: s.rotRight)
         }
         return !stopped
@@ -365,7 +366,7 @@ public final class Game {
         let s = settings
         guard let pf = pathLookup("to_hive", f.name, "walk") else { return false }
         status("traveling", "hive")
-        if (f.camera == "left" || f.camera == "right") && f.turns > 0 {
+        if f.rotatesCamera {
             walker.rotate(f.camera == "left" ? "right" : "left", taps: f.turns, leftKey: s.rotLeft, rightKey: s.rotRight)
         }
         setShiftLock(false)

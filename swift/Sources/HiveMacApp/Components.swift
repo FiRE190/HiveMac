@@ -31,19 +31,6 @@ struct QuietButtonStyle: ButtonStyle {
 }
 
 /// A key as it is drawn on the keyboard, for the stop key.
-struct Keycap: View {
-    var text: String
-    var body: some View {
-        Text(text)
-            .font(Theme.figure)
-            .foregroundStyle(Theme.wax)
-            .padding(.horizontal, Theme.s2)
-            .frame(minWidth: 28, minHeight: 24)
-            .background(RoundedRectangle(cornerRadius: 6).fill(Theme.plank))
-            .overlay(RoundedRectangle(cornerRadius: 6).stroke(Theme.grain, lineWidth: 1))
-    }
-}
-
 /// A label and its control on one aligned row.
 struct SettingRow<Content: View>: View {
     var label: String

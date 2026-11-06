@@ -23,18 +23,7 @@ final class ReportingSensors: Sensors {
 enum RunState: String {
     case idle, resetting, converting, traveling, gathering, paused, warning, error
 
-    var label: String {
-        switch self {
-        case .idle: return "Idle"
-        case .resetting: return "Resetting"
-        case .converting: return "Converting"
-        case .traveling: return "Traveling"
-        case .gathering: return "Gathering"
-        case .paused: return "Paused"
-        case .warning: return "Warning"
-        case .error: return "Stopped"
-        }
-    }
+    var label: String { self == .error ? "Stopped" : rawValue.capitalized }
 }
 
 struct LiveReadings: Equatable {
@@ -66,15 +55,15 @@ final class AppModel: ObservableObject {
     @Published var mobTimers = MobTimers()
     @Published var recording = false
     @Published var calibMessage: String?
-    private let keyRecorder = KeyRecorder()
+    let keyRecorder = KeyRecorder()
     @Published var remoteOn = false
     @Published var remoteURL = ""
     @Published var remoteMessage: String?
-    private var remote: RemoteServer?
-    private let beatLock = NSLock()
-    private var watchdog = Watchdog(now: Date().timeIntervalSince1970)
-    private func beat() { beatLock.lock(); watchdog.beat(at: Date().timeIntervalSince1970); beatLock.unlock() }
-    private func stalled() -> Bool { beatLock.lock(); defer { beatLock.unlock() }; return watchdog.isStalled(now: Date().timeIntervalSince1970, running: running, paused: paused) }
+    var remote: RemoteServer?
+    let beatLock = NSLock()
+    var watchdog = Watchdog(now: Date().timeIntervalSince1970)
+    func beat() { beatLock.lock(); watchdog.beat(at: Date().timeIntervalSince1970); beatLock.unlock() }
+    func stalled() -> Bool { beatLock.lock(); defer { beatLock.unlock() }; return watchdog.isStalled(now: Date().timeIntervalSince1970, running: running, paused: paused) }
     @Published var activeRunFile = "default_profile.json"
     @Published var hive = HiveProfile()
     @Published var stopKeyName = "f9"
@@ -84,17 +73,17 @@ final class AppModel: ObservableObject {
     // MARK: Engine
     let dirs: AppDirs
     let store: ConfigStore
-    private let stopSignal = Signal()
-    private let pauseSignal = Signal()
-    private var game: Game?
-    private let input = KeyInput()
-    private let capture = ScreenCapture()
-    private let hotKey = StopHotKey()
-    private var runtimeTimer: Timer?
-    private var pollTimer: DispatchSourceTimer?
-    private let pollQueue = DispatchQueue(label: "hivemac.poll", qos: .utility)
-    private let builtInPaths: URL
-    private var logFile: FileHandle?
+    let stopSignal = Signal()
+    let pauseSignal = Signal()
+    var game: Game?
+    let input = KeyInput()
+    let capture = ScreenCapture()
+    let hotKey = StopHotKey()
+    var runtimeTimer: Timer?
+    var pollTimer: DispatchSourceTimer?
+    let pollQueue = DispatchQueue(label: "hivemac.poll", qos: .utility)
+    let builtInPaths: URL
+    var logFile: FileHandle?
 
     init() {
         dirs = AppDirs.standard()
@@ -118,30 +107,16 @@ final class AppModel: ObservableObject {
         if ProcessInfo.processInfo.environment["HIVEMAC_DEMO"] != nil { applyDemo() } else { startPolling() }
     }
 
-    /// Made-up numbers for pictures and for trying the layout. Nothing here reads the game or the
-    /// real settings; run it with HIVEMAC_HOME pointing at a scratch folder.
-    var isDemo: Bool { ProcessInfo.processInfo.environment["HIVEMAC_DEMO"] != nil }
 
-    private func applyDemo() {
-        state = .gathering; detail = "sunflower corner_x_snake m w4"
-        running = true; runtimeSeconds = 2538; backpack = 72; currentField = "sunflower"
-        var s = LoopStats(); s.cycles = 14; s.converts = 13; s.deaths = 1; stats = s
-        permissions = PermissionStatus(screenRecording: true, accessibility: true)
-        live = LiveReadings(windowFound: true, windowText: "Roblox found, 1440 by 900", backpack: 70,
-                            backpackRGB: "rgb(146, 126, 78)", healthGrey: false, hivePrompt: true, calibrated: true)
-        var f2 = FieldConfig(name: "pine tree"); f2.minutes = 12; f2.backpackPercent = 90
-        var f3 = FieldConfig(name: "bamboo"); f3.returnMethod = "reset"
-        var f4 = FieldConfig(name: "stump"); f4.enabled = false
-        runs = [RunEntry(file: "demo.json", name: "Strawberry grinder"), RunEntry(file: "d2.json", name: "Clover fast")]; activeRunFile = "demo.json"
-        profile = Profile(name: "Strawberry grinder", fields: [FieldConfig(name: "sunflower"), f2, f3, f4],
-                          extras: [ExtraStep(kind: "bug_run"), ExtraStep(kind: "planters")])
-        hive.color = "blue"; hive.cubBuddy = true
-        ["Resetting: attempt 1", "Converting: done", "Traveling: sunflower", "Gathering: sunflower corner_x_snake m w4 until 95% or 10 min",
-         "Traveling: hive", "Converting: done"].forEach(append)
+    /// The Roblox window content right now, using the window mode and title bar from the settings.
+    static func bounds(_ store: ConfigStore) -> WindowBounds? {
+        WindowFinder.contentBounds(mode: store.string("game.window_mode", "windowed"),
+                                   titleBar: store.int("game.title_bar_height", 28))
     }
+    var robloxBounds: WindowBounds? { Self.bounds(store) }
 
     // MARK: Resources
-    private static func resource(_ relative: String, dev: String) -> URL {
+    static func resource(_ relative: String, dev: String) -> URL {
         if let r = Bundle.main.resourceURL?.appendingPathComponent(relative), FileManager.default.fileExists(atPath: r.path) { return r }
         // Running from the build folder (swift run): the repo is a few folders up from this file.
         let repo = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent()
@@ -152,7 +127,7 @@ final class AppModel: ObservableObject {
     static func findBuiltInPaths() -> URL { resource("paths", dev: "config/paths/natro") }
     static func findDefaultConfig() -> URL { resource("default_config.json", dev: "config/default_config.json") }
 
-    private static func openLog(_ url: URL) -> FileHandle? {
+    static func openLog(_ url: URL) -> FileHandle? {
         if !FileManager.default.fileExists(atPath: url.path) { FileManager.default.createFile(atPath: url.path, contents: nil) }
         let h = try? FileHandle(forWritingTo: url)
         _ = try? h?.seekToEnd()
@@ -177,8 +152,7 @@ final class AppModel: ObservableObject {
             permissions.problems.forEach(append)
             return
         }
-        let mode = store.string("game.window_mode", "windowed"), bar = store.int("game.title_bar_height", 28)
-        guard WindowFinder.contentBounds(mode: mode, titleBar: bar) != nil else {
+        guard robloxBounds != nil else {
             setStatus(.error, "Roblox is not open in a window. Open it, then press Start.")
             return
         }
@@ -190,9 +164,7 @@ final class AppModel: ObservableObject {
         stopSignal.clear(); pauseSignal.clear()
 
         let hud = HudConfig(store: store) { name in ScreenCapture.loadPNG(self.dirs.templates.appendingPathComponent(name)) }
-        let screenSensors = ScreenSensors(screen: capture, window: { [store] in
-            WindowFinder.contentBounds(mode: store.string("game.window_mode", "windowed"), titleBar: store.int("game.title_bar_height", 28))
-        }, config: hud)
+        let screenSensors = ScreenSensors(screen: capture, window: { [store] in Self.bounds(store) }, config: hud)
         let sensors = ReportingSensors(screenSensors)
         sensors.onBackpack = { [weak self] p in self?.beat(); DispatchQueue.main.async { self?.backpack = p } }
 
@@ -200,10 +172,7 @@ final class AppModel: ObservableObject {
         let g = Game(actuator: input, sensors: sensors, settings: settings, clock: RealClock(),
                      stop: stopSignal, pause: pauseSignal,
                      status: { [weak self] s, d in self?.beat(); DispatchQueue.main.async { self?.setStatus(RunState(rawValue: s) ?? .warning, d) } },
-                     windowSize: { [store] in
-                         WindowFinder.contentBounds(mode: store.string("game.window_mode", "windowed"), titleBar: store.int("game.title_bar_height", 28))
-                             .map { ($0.left, $0.top, $0.width, $0.height) }
-                     },
+                     windowSize: { [store] in Self.bounds(store).map { ($0.left, $0.top, $0.width, $0.height) } },
                      pathLookup: { kind, field, variant in
                          dirs.findPath(kind: kind, field: field, variant: variant, builtIn: builtIn).flatMap { try? PathFile.load($0) }
                      })
@@ -229,7 +198,7 @@ final class AppModel: ObservableObject {
         }
     }
 
-    private func finished(why: String) {
+    func finished(why: String) {
         running = false; paused = false
         runtimeTimer?.invalidate(); runtimeTimer = nil
         game = nil
@@ -261,240 +230,11 @@ final class AppModel: ObservableObject {
         if running { append("Stop requested") }
     }
 
-    private func setStatus(_ s: RunState, _ d: String) {
+    func setStatus(_ s: RunState, _ d: String) {
         if running && paused && s != .paused { return }       // a late status must not hide the pause
         state = s; detail = d
         if s == .gathering || s == .traveling { currentField = d.split(separator: " ").first.map(String.init) ?? currentField }
         if !d.isEmpty { append("\(s.label): \(d)") }
     }
 
-    // MARK: Calibration tools: record a walk, capture a picture
-    func userWalkURL(kind: String, field: String) -> URL {
-        dirs.userPaths.appendingPathComponent("\(kind)/\(Paths.fieldSlug(field)).json")
-    }
-
-    func toggleRecording(kind: String, field: String) {
-        if !recording {
-            guard !running else { calibMessage = "Stop the macro first."; return }
-            guard Permissions.inputMonitoring else {
-                Permissions.requestInputMonitoring()
-                calibMessage = "Turn on Input Monitoring for HiveMac in System Settings, then reopen HiveMac. It is only used to record walks."
-                return
-            }
-            keyRecorder.start(); recording = true
-            calibMessage = kind == "to_field" ? "Recording. Walk from the hive to the field, then press Stop where gathering should start."
-                                              : "Recording. Walk from the field back to the hive, then press Stop at the hive."
-            return
-        }
-        let events = keyRecorder.stop(); recording = false
-        let speed = store.double("game.walk_speed", 28)
-        let steps = Recorder.steps(from: events, walkSpeed: speed)
-        guard !steps.isEmpty else { calibMessage = "Nothing recorded."; return }
-        var file = PathFile(name: Paths.fieldSlug(field), steps: steps)
-        file.source = "recorded in HiveMac"; file.walkSpeed = speed
-        do {
-            try file.save(to: userWalkURL(kind: kind, field: field))
-            calibMessage = "Saved your walk for \(field.capitalized) (\(steps.count) steps). It replaces Natro's."
-        } catch { calibMessage = "Could not save: \(error.localizedDescription)" }
-    }
-
-    func removeUserWalk(kind: String, field: String) {
-        let u = userWalkURL(kind: kind, field: field)
-        if FileManager.default.fileExists(atPath: u.path) {
-            try? FileManager.default.removeItem(at: u)
-            calibMessage = "Removed your walk for \(field.capitalized). Natro's walk is used again."
-        } else { calibMessage = "No walk of your own for \(field.capitalized). Natro's is already used." }
-    }
-
-    /// The Roblox window right now, for picking a picture out of it.
-    func snapshotRoblox() -> RGBImage? {
-        let mode = store.string("game.window_mode", "windowed"), bar = store.int("game.title_bar_height", 28)
-        guard let w = WindowFinder.contentBounds(mode: mode, titleBar: bar) else { return nil }
-        return capture.grab(w)
-    }
-
-    /// Saves the chosen rectangle (in snapshot pixels) as a template and points the HUD at it.
-    func saveTemplate(key: String, from snapshot: RGBImage, x: Int, y: Int, w: Int, h: Int) {
-        guard let crop = snapshot.cropped(x: x, y: y, width: w, height: h), crop.width >= 4, crop.height >= 4 else {
-            calibMessage = "That area is too small."; return
-        }
-        let name = "\(key).png"
-        guard ScreenCapture.savePNG(crop, to: dirs.templates.appendingPathComponent(name)) else { calibMessage = "Could not save the picture."; return }
-        store.set("hud.\(key)_template", name)
-        if key != "cannon_prompt" {                                        // the cannon prompt looks in the hive prompt area
-            let pad = 24
-            let rx = max(0, x - pad), ry = max(0, y - pad)
-            let rw = min(snapshot.width - rx, w + 2 * pad), rh = min(snapshot.height - ry, h + 2 * pad)
-            store.set("hud.\(key)_region", ["fx": Double(rx) / Double(snapshot.width), "fy": Double(ry) / Double(snapshot.height),
-                                             "fw": Double(rw) / Double(snapshot.width), "fh": Double(rh) / Double(snapshot.height)])
-        }
-        store.set("hud.calibrated", true)
-        try? store.save()
-        calibMessage = "Saved \(name) (\(crop.width) by \(crop.height))."
-        append("Calibrate: saved \(name)")
-        refreshLive()
-    }
-
-    // MARK: Phone remote
-    func setRemote(_ on: Bool) {
-        remote?.stop(); remote = nil; remoteURL = ""; remoteMessage = nil
-        guard on else { remoteOn = false; set("remote.enabled", false); return }
-        var token = store.string("remote.token", "")
-        if token.isEmpty { token = String((0..<10).map { _ in "abcdefghjkmnpqrstuvwxyz23456789".randomElement()! }); store.set("remote.token", token); try? store.save() }
-        let server = RemoteServer(token: token)
-        server.status = { [weak self] in
-            guard let self else { return [:] }
-            return ["state": self.state.label, "detail": self.detail, "field": self.currentField, "backpack": self.backpack as Any? ?? NSNull(),
-                    "cycles": self.stats.cycles, "converts": self.stats.converts, "deaths": self.stats.deaths, "paused": self.paused, "running": self.running]
-        }
-        server.logLines = { [weak self] n in Array((self?.log ?? []).suffix(n)) }
-        server.action = { [weak self] a in
-            switch a { case "start": self?.start(); case "pause": self?.pause(); case "resume": self?.resume(); default: self?.stop() }
-        }
-        guard server.start() else { remoteOn = false; remoteMessage = "Port 8765 is busy. Close the other HiveMac and try again."; return }
-        remote = server; remoteOn = true; set("remote.enabled", true)
-        let ip = RemoteServer.localAddresses().first ?? "localhost"
-        remoteURL = "http://\(ip):8765/?t=\(token)"
-    }
-
-    // MARK: Stop key
-    func setStopKey(_ name: String) {
-        switch KeyCodes.validateStopKey(name) {
-        case .failure(let e): stopKeyMessage = e.message
-        case .success(let code):
-            if hotKey.register(keyCode: UInt32(code)) {
-                stopKeyName = name.lowercased(); stopKeyMessage = nil
-                store.set("app.emergency_stop_key", stopKeyName); try? store.save()
-            } else { stopKeyMessage = "macOS would not register that key. Try another." }
-        }
-    }
-
-    // MARK: Profile and settings
-    func saveProfile() {
-        try? profile.save(to: dirs.profiles.appendingPathComponent(activeRunFile))
-        refreshRuns()
-    }
-
-    // MARK: Run library (each run is one profile file)
-    struct RunEntry: Identifiable, Equatable { let file: String; let name: String; var id: String { file } }
-
-    func refreshRuns() {
-        let files = (try? FileManager.default.contentsOfDirectory(atPath: dirs.profiles.path)) ?? []
-        runs = files.filter { $0.hasSuffix(".json") }.sorted().compactMap { f in
-            (try? Profile.load(dirs.profiles.appendingPathComponent(f))).map { RunEntry(file: f, name: $0.name) }
-        }
-    }
-
-    func switchRun(_ file: String) {
-        guard !running, file != activeRunFile,
-              let p = try? Profile.load(dirs.profiles.appendingPathComponent(file)) else { return }
-        activeRunFile = file; profile = p
-        set("app.active_run_file", file)
-    }
-
-    private func newRunFile(_ name: String) -> String {
-        let slug = String(name.lowercased().map { $0.isLetter || $0.isNumber ? $0 : "_" })
-        var f = "\(slug).json", n = 2
-        while FileManager.default.fileExists(atPath: dirs.profiles.appendingPathComponent(f).path) { f = "\(slug)_\(n).json"; n += 1 }
-        return f
-    }
-
-    /// Creates a run from `base` (a copy of the current one, or nothing for a fresh one) and opens it.
-    func addRun(named name: String, copying base: Profile?) {
-        guard !running else { return }
-        var p = base ?? Profile(fields: [FieldConfig(name: "sunflower")])
-        p.name = name
-        let f = newRunFile(name)
-        try? p.save(to: dirs.profiles.appendingPathComponent(f))
-        refreshRuns(); switchRun(f)
-    }
-
-    func renameRun(_ name: String) {
-        let t = name.trimmingCharacters(in: .whitespaces)
-        guard !t.isEmpty else { return }
-        profile.name = t
-    }
-
-    var canDeleteRun: Bool { runs.count > 1 && !running }
-
-    func deleteRun() {
-        guard canDeleteRun else { return }
-        let gone = activeRunFile
-        try? FileManager.default.removeItem(at: dirs.profiles.appendingPathComponent(gone))
-        refreshRuns()
-        if let next = runs.first?.file { activeRunFile = ""; switchRun(next) }
-    }
-
-    func saveSettings() {
-        hive.write(to: store)
-        try? store.save()
-        settingsVersion += 1
-    }
-
-    func set(_ path: String, _ value: Any) { store.set(path, value); try? store.save(); settingsVersion += 1 }
-
-    // MARK: Calibration
-    func requestPermissions() { Permissions.request(); refreshPermissions() }
-    func refreshPermissions() { if !isDemo { permissions = Permissions.current() } }
-
-    /// Finds Roblox and seeds the HUD spots with Natro's defaults where nothing is set yet.
-    func detectRoblox() {
-        let mode = store.string("game.window_mode", "windowed"), bar = store.int("game.title_bar_height", 28)
-        guard let w = WindowFinder.contentBounds(mode: mode, titleBar: bar) else {
-            append("Detect Roblox: no Roblox window found. Open it in a window first.")
-            refreshLive(); return
-        }
-        let d = Layout.natroDefaults(w)
-        func pt(_ p: RelPoint) -> [String: Any] { ["fx": p.fx, "fy": p.fy] }
-        func rg(_ r: RelRegion) -> [String: Any] { ["fx": r.fx, "fy": r.fy, "fw": r.fw, "fh": r.fh] }
-        let seeds: [(String, Any)] = [("backpack_pixel", pt(d.backpackPixel)), ("health_pixel", pt(d.healthPixel)),
-                                      ("hive_prompt_region", rg(d.hivePromptRegion)), ("hive_view_region", rg(d.hiveViewRegion)),
-                                      ("hive_strip_region", rg(d.hiveStripRegion))]
-        for (key, value) in seeds where store.get("hud.\(key)") == nil || store.get("hud.\(key)") is NSNull {
-            store.set("hud.\(key)", value)
-        }
-        store.set("hud.calibrated", true)
-        try? store.save()
-        append("Detect Roblox: window \(w.width) by \(w.height). HUD spots set from Natro's defaults.")
-        refreshLive()
-    }
-
-    // MARK: Live readings (a light poll while idle, so the gauge and Calibrate tab show real values)
-    private func startPolling() {
-        let t = DispatchSource.makeTimerSource(queue: pollQueue)
-        t.schedule(deadline: .now() + 1, repeating: 2, leeway: .milliseconds(500))
-        t.setEventHandler { [weak self] in
-            DispatchQueue.main.async { if let self, !self.running, NSApp.isActive { self.refreshLive() } }
-        }
-        t.activate()
-        pollTimer = t
-    }
-
-    func refreshLive() {
-        if isDemo { return }
-        permissions = Permissions.current()
-        let mode = store.string("game.window_mode", "windowed"), bar = store.int("game.title_bar_height", 28)
-        let store = self.store, capture = self.capture, dirs = self.dirs
-        let allowed = permissions.screenRecording
-        pollQueue.async { [weak self] in
-            var r = LiveReadings()
-            let win = WindowFinder.contentBounds(mode: mode, titleBar: bar)
-            r.windowFound = win != nil
-            r.windowText = win.map { "Roblox found, \($0.width) by \($0.height)" } ?? "Roblox not found"
-            r.calibrated = store.bool("hud.calibrated")
-            if allowed, let win, r.calibrated {
-                let hud = HudConfig(store: store) { ScreenCapture.loadPNG(dirs.templates.appendingPathComponent($0)) }
-                let s = ScreenSensors(screen: capture, window: { win }, config: hud)
-                if let raw = s.backpackRaw() { r.backpack = raw }
-                if let c = s.lastBackpackRGB { r.backpackRGB = "rgb(\(c.r), \(c.g), \(c.b))" }
-                r.healthGrey = s.healthGrey()
-                r.hivePrompt = s.hivePromptVisible()
-            }
-            DispatchQueue.main.async {
-                guard let self else { return }
-                self.live = r
-                if !self.running { self.backpack = r.backpack }
-            }
-        }
-    }
 }

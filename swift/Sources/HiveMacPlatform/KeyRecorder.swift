@@ -9,7 +9,6 @@ public final class KeyRecorder {
     private let lock = NSLock()
 
     public init() {}
-    public var isRecording: Bool { monitor != nil }
 
     public func start() {
         events = []

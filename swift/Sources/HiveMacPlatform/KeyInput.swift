@@ -60,5 +60,4 @@ public final class KeyInput: Actuator {
         mouseEvent(.leftMouseUp)
     }
 
-    public var heldKeys: Set<String> { lock.lock(); defer { lock.unlock() }; return held }
 }
