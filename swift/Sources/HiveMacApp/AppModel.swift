@@ -64,6 +64,10 @@ final class AppModel: ObservableObject {
     @Published var profile = Profile()
     @Published var runs: [RunEntry] = []
     @Published var mobTimers = MobTimers()
+    @Published var remoteOn = false
+    @Published var remoteURL = ""
+    @Published var remoteMessage: String?
+    private var remote: RemoteServer?
     private let beatLock = NSLock()
     private var watchdog = Watchdog(now: Date().timeIntervalSince1970)
     private func beat() { beatLock.lock(); watchdog.beat(at: Date().timeIntervalSince1970); beatLock.unlock() }
@@ -101,6 +105,7 @@ final class AppModel: ObservableObject {
         hive = HiveProfile(store: store)
         refreshRuns()
         mobTimers = MobTimers.load(dirs.data.appendingPathComponent("mob_timers.json"))
+        if store.bool("remote.enabled", false) && ProcessInfo.processInfo.environment["HIVEMAC_DEMO"] == nil { DispatchQueue.main.async { self.setRemote(true) } }
         logFile = AppModel.openLog(dirs.logs.appendingPathComponent("hivemac.log"))
         stopKeyName = store.string("app.emergency_stop_key", "f9")
         hotKey.onPress = { [weak self] in self?.stop() }
@@ -258,6 +263,28 @@ final class AppModel: ObservableObject {
         state = s; detail = d
         if s == .gathering || s == .traveling { currentField = d.split(separator: " ").first.map(String.init) ?? currentField }
         if !d.isEmpty { append("\(s.label): \(d)") }
+    }
+
+    // MARK: Phone remote
+    func setRemote(_ on: Bool) {
+        remote?.stop(); remote = nil; remoteURL = ""; remoteMessage = nil
+        guard on else { remoteOn = false; set("remote.enabled", false); return }
+        var token = store.string("remote.token", "")
+        if token.isEmpty { token = String((0..<10).map { _ in "abcdefghjkmnpqrstuvwxyz23456789".randomElement()! }); store.set("remote.token", token); try? store.save() }
+        let server = RemoteServer(token: token)
+        server.status = { [weak self] in
+            guard let self else { return [:] }
+            return ["state": self.state.label, "detail": self.detail, "field": self.currentField, "backpack": self.backpack as Any? ?? NSNull(),
+                    "cycles": self.stats.cycles, "converts": self.stats.converts, "deaths": self.stats.deaths, "paused": self.paused, "running": self.running]
+        }
+        server.logLines = { [weak self] n in Array((self?.log ?? []).suffix(n)) }
+        server.action = { [weak self] a in
+            switch a { case "start": self?.start(); case "pause": self?.pause(); case "resume": self?.resume(); default: self?.stop() }
+        }
+        guard server.start() else { remoteOn = false; remoteMessage = "Port 8765 is busy. Close the other HiveMac and try again."; return }
+        remote = server; remoteOn = true; set("remote.enabled", true)
+        let ip = RemoteServer.localAddresses().first ?? "localhost"
+        remoteURL = "http://\(ip):8765/?t=\(token)"
     }
 
     // MARK: Stop key

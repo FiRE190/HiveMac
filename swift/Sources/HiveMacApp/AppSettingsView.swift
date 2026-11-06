@@ -35,6 +35,21 @@ struct AppSettingsView: View {
                         Text(msg).font(Theme.caption).foregroundStyle(Theme.ember)
                     }
 
+                    SectionTitle("Phone remote")
+                    SettingRow(label: "Control from a phone") {
+                        Toggle("On", isOn: Binding(get: { model.remoteOn }, set: { model.setRemote($0) })).toggleStyle(.checkbox)
+                    }
+                    if model.remoteOn {
+                        HStack(spacing: Theme.s2) {
+                            Text(model.remoteURL).font(Theme.caption).foregroundStyle(Theme.resin).lineLimit(1).truncationMode(.middle)
+                            Button("Copy link") {
+                                NSPasteboard.general.clearContents(); NSPasteboard.general.setString(model.remoteURL, forType: .string)
+                            }.buttonStyle(QuietButtonStyle())
+                        }
+                        Text("Same Wi-Fi or Tailscale. Anyone with this link can start and stop the macro.").font(Theme.caption).foregroundStyle(Theme.dust)
+                    }
+                    if let m = model.remoteMessage { Text(m).font(Theme.caption).foregroundStyle(Theme.ember) }
+
                     SectionTitle("Updates")
                     UpdateRow(checker: updates)
 
