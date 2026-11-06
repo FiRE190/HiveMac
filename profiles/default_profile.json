@@ -1,7 +1,0 @@
-{
-  "name": "default",
-  "fields": [
-    {"name": "sunflower", "enabled": true, "minutes": 10, "backpack_percent": 95, "travel": "default", "return_method": "walk"}
-  ],
-  "notes": "Fields take Natro's defaults for pattern, size, width, camera and sprinkler corner unless you override them here."
-}

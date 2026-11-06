@@ -95,4 +95,20 @@ public final class ScreenCapture: ScreenReading {
         guard let src = CGImageSourceCreateWithURL(url as CFURL, nil), let img = CGImageSourceCreateImageAtIndex(src, 0, nil) else { return nil }
         return rgb(from: img)
     }
+
+    /// Writes an RGB image as a PNG file.
+    public static func savePNG(_ image: RGBImage, to url: URL) -> Bool {
+        var rgba = [UInt8](); rgba.reserveCapacity(image.width * image.height * 4)
+        for i in stride(from: 0, to: image.pixels.count, by: 3) { rgba += [image.pixels[i], image.pixels[i + 1], image.pixels[i + 2], 255] }
+        guard let space = CGColorSpace(name: CGColorSpace.sRGB),
+              let provider = CGDataProvider(data: Data(rgba) as CFData),
+              let cg = CGImage(width: image.width, height: image.height, bitsPerComponent: 8, bitsPerPixel: 32,
+                               bytesPerRow: image.width * 4, space: space,
+                               bitmapInfo: CGBitmapInfo(rawValue: CGImageAlphaInfo.premultipliedLast.rawValue),
+                               provider: provider, decode: nil, shouldInterpolate: false, intent: .defaultIntent),
+              let dest = CGImageDestinationCreateWithURL(url as CFURL, "public.png" as CFString, 1, nil) else { return false }
+        try? FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
+        CGImageDestinationAddImage(dest, cg, nil)
+        return CGImageDestinationFinalize(dest)
+    }
 }

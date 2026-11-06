@@ -4,6 +4,7 @@ import AppKit
 @main
 struct HiveMacApp: App {
     @StateObject private var model = AppModel()
+    @StateObject private var updates = UpdateChecker()
 
     init() {
         if ProcessInfo.processInfo.environment["HIVEMAC_APPEARANCE"] == "light" { NSApp?.appearance = NSAppearance(named: .aqua) }
@@ -13,6 +14,8 @@ struct HiveMacApp: App {
         WindowGroup("HiveMac") {
             MainView()
                 .environmentObject(model)
+                .environmentObject(updates)
+                .task { if ProcessInfo.processInfo.environment["HIVEMAC_DEMO"] == nil { updates.checkOnLaunch() } }
                 .frame(minWidth: 620, idealWidth: 640, minHeight: 700, idealHeight: 760)
                 .background(WindowChrome())
         }

@@ -34,14 +34,98 @@ extension FieldConfig {
     }
 }
 
-/// A named list of fields to farm, stored as `profiles/<name>.json` like the Python app.
+/// A step in a run besides a field. Saved with the run; the engine does not run these yet.
+public struct ExtraStep: Equatable, Identifiable, Sendable {
+    public static let bugs = ["ladybug", "rhino beetle", "spider", "mantis", "scorpion", "werewolf",
+                              "coconut crab", "king beetle", "black bear"]
+    public var id = UUID()
+    public var kind: String                 // bug_run, planters, pickups
+    public var enabled = true
+    public var everyMinutes = 30.0          // bug run: how often. planters: not used (see harvestHours)
+    /// The chosen names: mobs for a bug run, pickups (clock, dispensers) for pickups.
+    public var bugs: [String] = ["ladybug", "rhino beetle"]
+    public var planterFields: [String] = ["", "", ""]
+    public var planterTypes: [String] = ["paper", "paper", "paper"]
+    /// Natro's 12 planters.
+    public static let planters = ["paper", "ticking", "plastic", "candy", "red clay", "blue clay", "tacky",
+                                  "pesticide", "heat-treated", "hydroponic", "petal", "planter of plenty"]
+    public var harvestHours = 4.0
+    /// One switch for all slots: plant again as soon as a slot is harvested.
+    public var planterReplant = true
+    /// Unix time each slot was planted; 0 = nothing planted.
+    public var planterPlanted: [Double] = [0, 0, 0]
+    /// Where it sits in the run: the number of fields before it. Large = after every field.
+    public var after = Int.max
+
+    /// Seconds until the slot is grown. nil = nothing planted. 0 = ready to harvest.
+    public func planterRemaining(_ slot: Int, now: Double) -> Double? {
+        guard planterFields.indices.contains(slot), !planterFields[slot].isEmpty,
+              planterPlanted.indices.contains(slot), planterPlanted[slot] > 0 else { return nil }
+        return max(0, planterPlanted[slot] + harvestHours * 3600 - now)
+    }
+
+    /// The slots worth a visit now: planted and grown. A round skips every other slot.
+    public func planterSlotsReady(now: Double) -> [Int] {
+        (0..<3).filter { planterRemaining($0, now: now) == 0 }
+    }
+
+    public init(kind: String) { self.kind = kind; if kind == "pickups" { bugs = ["wealth clock", "honey dispenser"] } }
+
+    public init(json d: [String: Any]) {
+        self.init(kind: (d["kind"] as? String) ?? "bug_run")
+        if let v = (d["enabled"] as? NSNumber)?.boolValue { enabled = v }
+        if let v = (d["every_minutes"] as? NSNumber)?.doubleValue { everyMinutes = v }
+        if let v = d["bugs"] as? [String] { bugs = v }
+        if let v = d["planter_fields"] as? [String] { planterFields = (v + ["", "", ""]).prefix(3).map { $0 } }
+        if let v = d["planter_types"] as? [String] { planterTypes = (v + ["paper", "paper", "paper"]).prefix(3).map { $0 } }
+        if let v = (d["harvest_hours"] as? NSNumber)?.doubleValue { harvestHours = v }
+        if let v = (d["after"] as? NSNumber)?.intValue { after = v }
+        if let v = (d["planter_replant"] as? NSNumber)?.boolValue { planterReplant = v }
+        if let v = d["planter_planted"] as? [NSNumber] { planterPlanted = (v.map(\.doubleValue) + [0, 0, 0]).prefix(3).map { $0 } }
+    }
+
+    public var json: [String: Any] {
+        ["kind": kind, "enabled": enabled, "every_minutes": everyMinutes, "bugs": bugs,
+         "planter_fields": planterFields, "planter_types": planterTypes, "harvest_hours": harvestHours,
+         "after": min(after, 1000), "planter_replant": planterReplant, "planter_planted": planterPlanted]
+    }
+}
+
+/// A named list of fields to farm, stored as `profiles/<name>.json`.
 public struct Profile: Equatable {
     public var name: String
     public var fields: [FieldConfig]
     public var notes: String
+    public var extras: [ExtraStep]
 
-    public init(name: String = "default", fields: [FieldConfig] = [FieldConfig(name: "sunflower")], notes: String = "") {
-        self.name = name; self.fields = fields; self.notes = notes
+    public init(name: String = "default", fields: [FieldConfig] = [FieldConfig(name: "sunflower")], notes: String = "", extras: [ExtraStep] = []) {
+        self.name = name; self.fields = fields; self.notes = notes; self.extras = extras
+    }
+
+    /// Every row in run order. Keys: `f:<field>` and `e:<uuid>`.
+    public var orderKeys: [String] {
+        var out: [String] = []
+        for i in 0...fields.count {
+            for e in extras where min(e.after, fields.count) == i { out.append("e:" + e.id.uuidString) }
+            if i < fields.count { out.append("f:" + fields[i].name) }
+        }
+        return out
+    }
+
+    /// Moves one row so it sits just before `target` (or at the end when `target` is nil).
+    public mutating func move(_ key: String, before target: String?) {
+        var keys = orderKeys
+        guard key != target, let from = keys.firstIndex(of: key) else { return }
+        keys.remove(at: from)
+        if let t = target, let to = keys.firstIndex(of: t) { keys.insert(key, at: to) } else { keys.append(key) }
+        var newFields: [FieldConfig] = [], newExtras: [ExtraStep] = []
+        for k in keys {
+            if k.hasPrefix("f:"), let f = fields.first(where: { "f:" + $0.name == k }) { newFields.append(f) }
+            else if k.hasPrefix("e:"), var e = extras.first(where: { "e:" + $0.id.uuidString == k }) {
+                e.after = newFields.count; newExtras.append(e)
+            }
+        }
+        fields = newFields; extras = newExtras
     }
 
     public static func load(_ url: URL) throws -> Profile {
@@ -49,12 +133,13 @@ public struct Profile: Equatable {
         let fields = ((obj["fields"] as? [[String: Any]]) ?? []).map(FieldConfig.init(json:))
         return Profile(name: (obj["name"] as? String) ?? url.deletingPathExtension().lastPathComponent,
                        fields: fields.isEmpty ? [FieldConfig(name: "sunflower")] : fields,
-                       notes: (obj["notes"] as? String) ?? "")
+                       notes: (obj["notes"] as? String) ?? "",
+                       extras: ((obj["extras"] as? [[String: Any]]) ?? []).map(ExtraStep.init(json:)))
     }
 
     public func save(to url: URL) throws {
         try FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
-        let obj: [String: Any] = ["name": name, "fields": fields.map(\.json), "notes": notes]
+        let obj: [String: Any] = ["name": name, "fields": fields.map(\.json), "notes": notes, "extras": extras.map(\.json)]
         try JSONSerialization.data(withJSONObject: obj, options: [.prettyPrinted, .sortedKeys]).write(to: url, options: .atomic)
     }
 }

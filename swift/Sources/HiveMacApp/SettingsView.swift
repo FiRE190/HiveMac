@@ -2,6 +2,7 @@ import SwiftUI
 import AppKit
 import HiveMacCore
 
+/// The macro's own settings. App settings (permissions, stop key, updates) are behind the gear.
 struct SettingsView: View {
     @EnvironmentObject var model: AppModel
 
@@ -15,54 +16,77 @@ struct SettingsView: View {
         Binding(get: { _ = model.settingsVersion; return model.store.string(path, fallback) }, set: { model.set(path, $0) })
     }
 
+    @State private var savedAt: Date?
+
+    static let hotbarItems: [(String, String)] = [
+        ("", "Empty"), ("sprinkler", "Sprinkler"), ("micro-converter", "Micro-Converter"), ("glitter", "Glitter"),
+        ("enzymes", "Enzymes"), ("oil", "Oil"), ("glue", "Glue"), ("stinger", "Stinger"), ("other", "Something else")]
+
+    /// What is in hotbar slot `n`. A sprinkler slot is also the key the macro presses to place it.
+    private func hotbar(_ n: Int) -> Binding<String> {
+        Binding(get: {
+            _ = model.settingsVersion
+            let v = model.store.string("game.hotbar.\(n)", "")
+            if v.isEmpty && model.store.string("game.hotbar.set", "") == "" && model.store.string("game.sprinkler_slot_key", "1") == "\(n)" { return "sprinkler" }
+            return v
+        }, set: { item in
+            model.set("game.hotbar.set", "1")
+            for k in 1...7 where model.store.string("game.hotbar.\(k)", "") == "sprinkler" && item == "sprinkler" { model.set("game.hotbar.\(k)", "") }
+            model.set("game.hotbar.\(n)", item)
+            if item == "sprinkler" { model.set("game.sprinkler_slot_key", "\(n)") }
+            if item == "micro-converter" { model.set("game.micro_converter_key", "\(n)") }
+        })
+    }
+
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
                 SectionTitle("Hive")
-                SettingRow(label: "Hive color", hint: "Sets which fields match your bees.") {
-                    Picker("", selection: $model.hive.color) {
-                        Text("Blue").tag("blue"); Text("Red").tag("red"); Text("White").tag("white"); Text("Mixed").tag("mixed")
-                    }.labelsHidden().frame(width: 110)
+                SettingRow(label: "Hive color") {
+                    Choice(options: [("blue", "Blue"), ("red", "Red"), ("white", "White"), ("mixed", "Mixed")],
+                           selection: $model.hive.color, width: 120)
                 }
                 SettingRow(label: "Bees") { TextField("", value: $model.hive.beeCount, format: .number).fieldStyle(width: 64) }
                 SettingRow(label: "Average bee level") { TextField("", value: $model.hive.avgBeeLevel, format: .number).fieldStyle(width: 64) }
-                SettingRow(label: "Cub Buddy", hint: "The bear that picks up tokens for you.") { Toggle("I have it", isOn: $model.hive.cubBuddy).toggleStyle(.checkbox) }
-                SettingRow(label: "Backpack percent", hint: "Default for new fields.") { TextField("", value: $model.hive.backpackPercent, format: .number).fieldStyle(width: 64) }
-                SettingRow(label: "Hive slot", hint: "Counted from the ramp.") {
-                    Picker("", selection: int("game.hive_slot", 1)) { ForEach(1...6, id: \.self) { Text("\($0)").tag($0) } }.labelsHidden().frame(width: 70)
-                }
+                SettingRow(label: "Cub Buddy") { Toggle("Have it", isOn: $model.hive.cubBuddy).toggleStyle(.checkbox) }
+                SettingRow(label: "Backpack percent") { TextField("", value: $model.hive.backpackPercent, format: .number).fieldStyle(width: 64) }
 
                 SectionTitle("Walking")
-                SettingRow(label: "Walk speed", hint: "From the in-game settings panel. Natro's default is 28.") {
-                    TextField("", value: num("game.walk_speed", 28), format: .number).fieldStyle(width: 64)
-                }
+                SettingRow(label: "Walk speed, no buffs") { TextField("", value: num("game.walk_speed", 28), format: .number).fieldStyle(width: 64) }
                 SettingRow(label: "Default travel") {
-                    Picker("", selection: str("game.travel", "walk")) { Text("Walk").tag("walk"); Text("Cannon").tag("cannon") }.labelsHidden().frame(width: 110)
+                    Choice(options: [("walk", "Walk"), ("cannon", "Cannon")], selection: str("game.travel", "walk"), width: 120)
                 }
-                SettingRow(label: "Roblox window", hint: "Windowed is the simple one. Keep its size fixed.") {
-                    Picker("", selection: str("game.window_mode", "windowed")) { Text("Windowed").tag("windowed"); Text("Full screen").tag("fullscreen") }.labelsHidden().frame(width: 130)
+                if model.store.string("game.travel", "walk") == "cannon" {
+                    Text("Cannon: needs the Red Cannon.\nMust have the Glider (Mountain Top Shop, the upgrade of the Parachute).")
+                        .font(Theme.caption).foregroundStyle(Theme.dust).fixedSize(horizontal: false, vertical: true)
+                        .padding(.bottom, Theme.s2)
                 }
-                SettingRow(label: "Sprinkler") {
-                    Picker("", selection: str("game.sprinkler_type", "none")) {
-                        ForEach(Sprinkler.types, id: \.self) { Text($0.capitalized).tag($0) }
-                    }.labelsHidden().frame(width: 110)
-                }
-                SettingRow(label: "Sprinkler hotbar key") {
-                    Picker("", selection: str("game.sprinkler_slot_key", "1")) { ForEach(1...7, id: \.self) { Text("\($0)").tag("\($0)") } }.labelsHidden().frame(width: 70)
+                SettingRow(label: "Roblox window") {
+                    Choice(options: [("windowed", "Windowed"), ("fullscreen", "Full screen")], selection: str("game.window_mode", "windowed"), width: 120)
                 }
 
-                SectionTitle("Stop key")
-                SettingRow(label: "Stop everything", hint: "Works in any app. On some keyboards F keys need Fn held.") {
-                    StopKeyField()
-                }
-                if let msg = model.stopKeyMessage {
-                    Text(msg).font(Theme.caption).foregroundStyle(Theme.ember).padding(.leading, 206)
+                SectionTitle("Sprinkler")
+                SettingRow(label: "Type") {
+                    Choice(options: Sprinkler.types.map { ($0, $0.capitalized) }, selection: str("game.sprinkler_type", "none"), width: 120)
                 }
 
-                SectionTitle("Data")
-                SettingRow(label: "Folder", hint: model.dirs.data.path) {
-                    Button("Show in Finder") { NSWorkspace.shared.activateFileViewerSelecting([model.dirs.data]) }.buttonStyle(QuietButtonStyle())
+                SectionTitle("Hotbar")
+            Text("Put what is in each slot of your in-game hotbar. The macro presses the right key for each item.")
+                .font(Theme.caption).foregroundStyle(Theme.dust).fixedSize(horizontal: false, vertical: true)
+            ForEach(1...7, id: \.self) { n in
+                SettingRow(label: "Slot \(n)") {
+                    Choice(options: Self.hotbarItems, selection: hotbar(n), width: 160)
                 }
+            }
+            HStack {
+                Button("Save") { model.set("game.saved", Date().timeIntervalSince1970); model.saveSettings(); savedAt = Date() }
+                    .buttonStyle(HoneyButtonStyle())
+                if let savedAt, Date().timeIntervalSince(savedAt) < 3 {
+                    Text("Saved").font(Theme.caption).foregroundStyle(Theme.leaf)
+                }
+                Spacer()
+            }
+            .padding(.top, Theme.s6)
             }
             .padding(.horizontal, Theme.s6).padding(.bottom, Theme.s6)
         }
@@ -73,18 +97,28 @@ struct SettingsView: View {
 /// Click, then press the key you want. Keys the macro presses itself are refused.
 struct StopKeyField: View {
     @EnvironmentObject var model: AppModel
+    var compact = false
     @State private var capturing = false
     @State private var monitor: Any?
 
     var body: some View {
-        Button {
-            capturing ? finish() : begin()
-        } label: {
-            Text(capturing ? "Press a key" : model.stopKeyName.uppercased())
-                .frame(minWidth: 90)
+        if compact {
+            Button { capturing ? finish() : begin() } label: {
+                Text(capturing ? "Press a key" : model.stopKeyName.uppercased())
+                    .font(Theme.figure).foregroundStyle(capturing ? Theme.honeyText : Theme.wax)
+                    .padding(.horizontal, Theme.s2).frame(minWidth: 28, minHeight: 24)
+                    .background(RoundedRectangle(cornerRadius: 6).fill(Theme.plank))
+                    .overlay(RoundedRectangle(cornerRadius: 6).stroke(capturing ? Theme.honeyText : Theme.grain, lineWidth: 1))
+            }
+            .buttonStyle(.plain).help("Click, then press the key you want")
+            .onDisappear { finish() }
+        } else {
+            Button { capturing ? finish() : begin() } label: {
+                Text(capturing ? "Press a key" : model.stopKeyName.uppercased()).frame(minWidth: 90)
+            }
+            .buttonStyle(QuietButtonStyle(tint: capturing ? Theme.honeyText : Theme.wax))
+            .onDisappear { finish() }
         }
-        .buttonStyle(QuietButtonStyle(tint: capturing ? Theme.honeyText : Theme.wax))
-        .onDisappear { finish() }
     }
 
     private func begin() {

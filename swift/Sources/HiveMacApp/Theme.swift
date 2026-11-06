@@ -37,7 +37,6 @@ enum Theme {
     static let s1: CGFloat = 4, s2: CGFloat = 8, s3: CGFloat = 12, s4: CGFloat = 16, s6: CGFloat = 24
     static let rowHeight: CGFloat = 34
     static let controlRadius: CGFloat = 8
-    static let panelRadius: CGFloat = 12
 
     // MARK: Type: New York (serif) for the name and the big readings, SF for everything else.
     static func serif(_ size: CGFloat, _ weight: Font.Weight = .semibold) -> Font { .system(size: size, weight: weight, design: .serif) }

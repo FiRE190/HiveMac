@@ -31,19 +31,6 @@ struct QuietButtonStyle: ButtonStyle {
 }
 
 /// A key as it is drawn on the keyboard, for the stop key.
-struct Keycap: View {
-    var text: String
-    var body: some View {
-        Text(text)
-            .font(Theme.figure)
-            .foregroundStyle(Theme.wax)
-            .padding(.horizontal, Theme.s2)
-            .frame(minWidth: 28, minHeight: 24)
-            .background(RoundedRectangle(cornerRadius: 6).fill(Theme.plank))
-            .overlay(RoundedRectangle(cornerRadius: 6).stroke(Theme.grain, lineWidth: 1))
-    }
-}
-
 /// A label and its control on one aligned row.
 struct SettingRow<Content: View>: View {
     var label: String
@@ -55,7 +42,7 @@ struct SettingRow<Content: View>: View {
                 Text(label).font(Theme.body).foregroundStyle(Theme.wax)
                 if let hint { Text(hint).font(Theme.caption).foregroundStyle(Theme.dust).fixedSize(horizontal: false, vertical: true) }
             }
-            .frame(width: 190, alignment: .leading)
+            .frame(width: 170, alignment: .leading)
             content
             Spacer(minLength: 0)
         }
@@ -82,5 +69,33 @@ extension View {
             .frame(width: width, height: 28)
             .background(RoundedRectangle(cornerRadius: 6).fill(Theme.plank))
             .overlay(RoundedRectangle(cornerRadius: 6).stroke(Theme.grain, lineWidth: 1))
+    }
+}
+
+/// A compact drop-down in the app's own look (the system Picker draws a blue stepper).
+struct Choice<T: Hashable>: View {
+    var options: [(value: T, label: String)]
+    @Binding var selection: T
+    var width: CGFloat = 110
+    @Environment(\.isEnabled) private var enabled
+
+    var body: some View {
+        Menu {
+            ForEach(options.indices, id: \.self) { i in
+                Button(options[i].label) { selection = options[i].value }
+            }
+        } label: {
+            HStack(spacing: Theme.s1) {
+                Text(options.first { $0.value == selection }?.label ?? "").font(Theme.body).foregroundStyle(Theme.wax).lineLimit(1)
+                Spacer(minLength: 0)
+                Image(systemName: "chevron.down").font(.system(size: 9, weight: .bold)).foregroundStyle(Theme.dust)
+            }
+            .padding(.horizontal, Theme.s2)
+            .frame(width: width, height: 28)
+            .background(RoundedRectangle(cornerRadius: 6).fill(Theme.plank))
+            .overlay(RoundedRectangle(cornerRadius: 6).stroke(Theme.grain, lineWidth: 1))
+            .opacity(enabled ? 1 : 0.5)
+        }
+        .menuStyle(.button).buttonStyle(.plain).menuIndicator(.hidden).fixedSize()
     }
 }
