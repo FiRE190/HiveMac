@@ -19,7 +19,6 @@ field boosters (45 min), honeystorm (4 h), ant pass (2 h), robo pass (22 h), dai
 
 ## Port from the Python app
 - Remote control page for the phone (same link and token idea).
-- Watchdog (no progress for N minutes, then stop and log).
 - Calibration tools: record a walk, template capture.
 - Hive profile outputs: recommended fields per colour and an estimate per field (labelled estimate).
 

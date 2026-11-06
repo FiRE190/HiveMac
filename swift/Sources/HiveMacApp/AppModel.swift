@@ -64,6 +64,10 @@ final class AppModel: ObservableObject {
     @Published var profile = Profile()
     @Published var runs: [RunEntry] = []
     @Published var mobTimers = MobTimers()
+    private let beatLock = NSLock()
+    private var watchdog = Watchdog(now: Date().timeIntervalSince1970)
+    private func beat() { beatLock.lock(); watchdog.beat(at: Date().timeIntervalSince1970); beatLock.unlock() }
+    private func stalled() -> Bool { beatLock.lock(); defer { beatLock.unlock() }; return watchdog.isStalled(now: Date().timeIntervalSince1970, running: running, paused: paused) }
     @Published var activeRunFile = "default_profile.json"
     @Published var hive = HiveProfile()
     @Published var stopKeyName = "f9"
@@ -182,12 +186,12 @@ final class AppModel: ObservableObject {
             WindowFinder.contentBounds(mode: store.string("game.window_mode", "windowed"), titleBar: store.int("game.title_bar_height", 28))
         }, config: hud)
         let sensors = ReportingSensors(screenSensors)
-        sensors.onBackpack = { [weak self] p in DispatchQueue.main.async { self?.backpack = p } }
+        sensors.onBackpack = { [weak self] p in self?.beat(); DispatchQueue.main.async { self?.backpack = p } }
 
         let builtIn = builtInPaths, dirs = self.dirs
         let g = Game(actuator: input, sensors: sensors, settings: settings, clock: RealClock(),
                      stop: stopSignal, pause: pauseSignal,
-                     status: { [weak self] s, d in DispatchQueue.main.async { self?.setStatus(RunState(rawValue: s) ?? .warning, d) } },
+                     status: { [weak self] s, d in self?.beat(); DispatchQueue.main.async { self?.setStatus(RunState(rawValue: s) ?? .warning, d) } },
                      windowSize: { [store] in
                          WindowFinder.contentBounds(mode: store.string("game.window_mode", "windowed"), titleBar: store.int("game.title_bar_height", 28))
                              .map { ($0.left, $0.top, $0.width, $0.height) }
@@ -199,10 +203,15 @@ final class AppModel: ObservableObject {
         let loop = FarmLoop(g, fields: profile.fields)
         loop.onStats = { [weak self] s in DispatchQueue.main.async { self?.stats = s } }
 
+        watchdog = Watchdog(timeout: store.double("timing.watchdog_timeout_sec", 90), now: Date().timeIntervalSince1970)
         running = true; paused = false; runtimeSeconds = 0; stats = LoopStats()
         setStatus(.resetting, "Starting")
         runtimeTimer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in
-            Task { @MainActor in if let self, self.running, !self.paused { self.runtimeSeconds += 1 } }
+            Task { @MainActor in
+                guard let self, self.running else { return }
+                if !self.paused { self.runtimeSeconds += 1 }
+                if self.stalled() { self.append("Watchdog: nothing happened for a while, stopping."); self.setStatus(.error, "Stopped: the macro stopped responding"); self.stop() }
+            }
         }
         WindowFinder.focusRoblox()
         Thread.detachNewThread { [weak self] in
