@@ -47,9 +47,23 @@ window. A small grab costs about 0.15 ms of CPU.
 
 ## Install and run
 
+As an app (recommended, so macOS lists the permissions under "HiveMac"):
+
 ```sh
+brew install python@3.12 python-tk@3.12
 git clone https://github.com/FiRE190/HiveMac.git
 cd HiveMac
+scripts/install.sh      # builds HiveMac.app and copies it to /Applications
+```
+
+Then open HiveMac from Launchpad. On the first run, allow it under System Settings >
+Privacy & Security for Screen Recording, Accessibility and Input Monitoring, and open it
+again. A zip of the app is attached to each GitHub Release; it needs the same Homebrew
+Python at the same path, so the command above is the reliable route.
+
+From the source folder instead (permissions then belong to your terminal):
+
+```sh
 ./install.sh
 ./launch.command        # or: venv/bin/python main.py
 ```
@@ -69,6 +83,12 @@ The window shows a link like `http://192.168.x.x:8765/?t=...`. Open it on your p
 (same Wi-Fi or Tailscale) to start, pause, stop, change settings and fields, and see
 the log. The token in the link is the only protection, so do not expose the port to
 the internet.
+
+## Uninstall
+
+Quit HiveMac, delete `HiveMac.app` from Applications, and delete the data folder
+`~/Library/Application Support/HiveMac` (settings, profiles, logs, recordings). Then remove
+HiveMac from Screen Recording, Accessibility and Input Monitoring in System Settings.
 
 ## Layout
 

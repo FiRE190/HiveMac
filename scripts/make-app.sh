@@ -49,6 +49,9 @@ echo "[4/5] Python environment ($($PYTHON --version))"
 "$RES/venv/bin/pip" install --quiet --upgrade pip
 "$RES/venv/bin/pip" install --quiet -r requirements.txt
 rm -rf "$RES"/venv/lib/python3.*/site-packages/PyObjCTest
+# Test suites and pip are not needed at run time.
+find "$RES/venv/lib" -type d \( -name tests -o -name testing -o -name test \) -prune -exec rm -rf {} + 2>/dev/null || true
+rm -rf "$RES"/venv/lib/python3.*/site-packages/pip "$RES"/venv/lib/python3.*/site-packages/pip-*.dist-info
 find "$RES/venv" -name '__pycache__' -type d -prune -exec rm -rf {} + 2>/dev/null || true
 
 cat > "$APP/Contents/Info.plist" <<PLIST
