@@ -4,6 +4,7 @@ import HiveMacCore
 
 struct SettingsView: View {
     @EnvironmentObject var model: AppModel
+    @EnvironmentObject var updates: UpdateChecker
 
     private func num(_ path: String, _ fallback: Double) -> Binding<Double> {
         Binding(get: { _ = model.settingsVersion; return model.store.double(path, fallback) }, set: { model.set(path, $0) })
@@ -58,6 +59,9 @@ struct SettingsView: View {
                 if let msg = model.stopKeyMessage {
                     Text(msg).font(Theme.caption).foregroundStyle(Theme.ember).padding(.leading, 206)
                 }
+
+                SectionTitle("Updates")
+                UpdateRow(checker: updates)
 
                 SectionTitle("Data")
                 SettingRow(label: "Folder", hint: model.dirs.data.path) {
