@@ -6,9 +6,13 @@ let package = Package(
     platforms: [.macOS(.v14)],
     products: [
         .library(name: "HiveMacCore", targets: ["HiveMacCore"]),
+        .library(name: "HiveMacPlatform", targets: ["HiveMacPlatform"]),
+        .executable(name: "hivemac-probe", targets: ["hivemac-probe"]),
     ],
     targets: [
         .target(name: "HiveMacCore"),
+        .target(name: "HiveMacPlatform", dependencies: ["HiveMacCore"]),
+        .executableTarget(name: "hivemac-probe", dependencies: ["HiveMacCore", "HiveMacPlatform"]),
         .testTarget(name: "HiveMacCoreTests", dependencies: ["HiveMacCore"]),
     ],
     swiftLanguageModes: [.v5]

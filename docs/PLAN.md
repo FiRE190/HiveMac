@@ -89,3 +89,20 @@ Compare the Swift app against these numbers.
 Targets from the plan: under 1% CPU waiting, under 150 MB resident. The Python app is over both
 with the window open. (Gathering with the window closed measured 0.11% earlier, so the window
 and Tk redraws are the cost.)
+
+## Resource budget (Jonathan, 2026-11-05)
+
+**Hard ceiling: 0.5 GB of RAM while running, all processes of the app counted.** Our own
+targets are tighter so there is room to spare: under 100 MB for the Swift app, under 1% CPU
+waiting, near zero GPU. The Python app (about 156 MB with the window open) is the reference.
+
+Measured on this Mac (M6, macOS 27.2), Swift native layer, `swift/Sources/hivemac-probe`:
+
+| What | Result |
+|---|---|
+| 50 screen reads (ScreenCaptureKit, 1 pixel and 400x120 regions) | 0.02 s of CPU in total, 20 MB peak memory |
+| Wall time per read | about 33 ms (waiting on the system, not our CPU); the deprecated CoreGraphics route is about 16 ms |
+| At 3 reads per second | roughly 0.1% of one core |
+
+ScreenCaptureKit is kept (the supported API). If the reads ever need to be cheaper, one capture
+of a thin top strip per second can serve both the backpack and health pixels.
