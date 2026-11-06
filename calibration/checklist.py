@@ -60,7 +60,8 @@ def get_checklist() -> list[CheckItem]:
         items.append(CheckItem(
             key=key, label=label, category="coordinate",
             ok=ok,
-            detail=f"({coords[key]['x']}, {coords[key]['y']})" if ok else "not recorded",
+            detail=f"({coords[key].get('x', coords[key].get('abs_x', '?')):.0f}, "
+                   f"{coords[key].get('y', coords[key].get('abs_y', '?')):.0f})" if ok else "not recorded",
         ))
 
     # At least one field

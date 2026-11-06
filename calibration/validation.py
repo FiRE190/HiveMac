@@ -100,21 +100,9 @@ def _check_permissions(report: ValidationReport) -> None:
 
 
 def _check_ocr(report: ValidationReport) -> None:
-    try:
-        import pytesseract
-        import subprocess
-        r = subprocess.run(["tesseract", "--version"], capture_output=True, timeout=4)
-        ok = r.returncode == 0
-    except Exception:
-        ok = False
-
-    report.items.append(ValidationItem(
-        name     = "Tesseract OCR",
-        ok       = ok,
-        message  = "Tesseract available" if ok else "Tesseract not installed",
-        blocking = False,   # macro can still run, just no backpack % detection
-        fix_hint = "Run: brew install tesseract",
-    ))
+    # OCR removed — backpack detection now uses visual HSV fill estimation.
+    # This check is kept as a no-op so callers don't need updating.
+    pass
 
 
 def _check_hive(report: ValidationReport, profile: dict) -> None:

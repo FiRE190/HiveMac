@@ -16,7 +16,6 @@ REQUIRED_IMPORTS = {
     "pyautogui":     "pyautogui>=0.9.54",
     "mss":           "mss>=9.0.1",
     "PIL":           "Pillow>=10.0.0",
-    "pytesseract":   "pytesseract>=0.3.10",
     "numpy":         "numpy>=1.24.0",
     "pynput":        "pynput>=1.7.6",
 }
@@ -55,10 +54,9 @@ def check_all() -> EnvStatus:
     s.missing_packages = _check_packages()
     s.packages_ok = len(s.missing_packages) == 0
 
-    # Tesseract
-    s.tesseract_ok, s.tesseract_version = _check_tesseract()
-    if not s.tesseract_ok:
-        s.notes.append("Tesseract not found — install with: brew install tesseract")
+    # Tesseract is no longer required (OCR removed)
+    s.tesseract_ok = True
+    s.tesseract_version = "N/A (OCR removed)"
 
     # Permissions (best-effort, non-blocking)
     s.screen_recording_ok = _check_screen_recording()
@@ -72,7 +70,6 @@ def check_all() -> EnvStatus:
     s.all_ok = (
         s.python_ok
         and s.packages_ok
-        and s.tesseract_ok
         and s.screen_recording_ok is not False
         and s.accessibility_ok is not False
     )

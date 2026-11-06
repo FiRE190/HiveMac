@@ -64,6 +64,13 @@ class SpeedCalibrator:
         detector = PositionDetector()
         samples: list[float] = []
 
+        try:
+            from calibration.roblox_finder import focus_roblox
+            focus_roblox()
+            time.sleep(0.4)  # give OS time to bring Roblox to front
+        except Exception:
+            pass
+
         log.info("Speed calibration: pressing W for %.1fs", MEASURE_SEC)
         pyautogui.keyDown("w")
         t0 = time.monotonic()

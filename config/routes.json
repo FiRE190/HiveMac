@@ -1,0 +1,185 @@
+{
+  "_comment": "BSS 3D navigation routes. Customize key durations after calibrating movement speed.",
+  "_version": "1.0",
+  "_instructions": [
+    "Each route is a destination key mapped to a list of segments.",
+    "Methods: walk, cannon, glider, jump, jump_glide",
+    "Terrain hints: ground, ramp_up, ramp_down, bridge, platform",
+    "key durations are in seconds at calibrated base speed.",
+    "Run the calibration tool to auto-populate timings for your account."
+  ],
+
+  "hive_1": {
+    "segments": [
+      {
+        "name": "approach_hive",
+        "method": "walk",
+        "terrain": "ground",
+        "keys": [["w", 2.5]],
+        "validate_progress": true
+      }
+    ]
+  },
+
+  "hive_2": {
+    "segments": [
+      {
+        "name": "approach_hive_2",
+        "method": "walk",
+        "terrain": "ground",
+        "keys": [["w", 2.5]],
+        "validate_progress": true
+      }
+    ]
+  },
+
+  "sunflower_field": {
+    "_comment": "Example: cannon-assisted route. Adjust durations after calibration.",
+    "segments": [
+      {
+        "name": "walk_to_cannon_area",
+        "method": "walk",
+        "terrain": "ramp_down",
+        "keys": [["d", 3.0], ["w", 1.5]],
+        "validate_progress": true,
+        "speed_factor": 1.2
+      },
+      {
+        "name": "red_cannon_launch",
+        "method": "cannon",
+        "cannon_key": "e",
+        "cannon_align_keys": [],
+        "expected_air_time_sec": 4.5
+      },
+      {
+        "name": "post_cannon_stabilize",
+        "method": "walk",
+        "terrain": "ground",
+        "keys": [["s", 0.3]],
+        "validate_progress": false
+      }
+    ],
+    "fallback": "hive_1"
+  },
+
+  "dandelion_field": {
+    "segments": [
+      {
+        "name": "walk_to_dandelion",
+        "method": "walk",
+        "terrain": "ground",
+        "keys": [["w", 2.0], ["d", 1.0]],
+        "validate_progress": true
+      }
+    ],
+    "fallback": "hive_1"
+  },
+
+  "mushroom_field": {
+    "segments": [
+      {
+        "name": "walk_to_mushroom",
+        "method": "walk",
+        "terrain": "ramp_up",
+        "keys": [["w", 4.0], ["a", 1.0]],
+        "validate_progress": true,
+        "speed_factor": 0.75
+      }
+    ],
+    "fallback": "hive_1"
+  },
+
+  "bamboo_field": {
+    "segments": [
+      {
+        "name": "walk_to_bamboo",
+        "method": "walk",
+        "terrain": "ground",
+        "keys": [["d", 3.0], ["w", 2.0]],
+        "validate_progress": true
+      }
+    ],
+    "fallback": "hive_1"
+  },
+
+  "strawberry_field": {
+    "segments": [
+      {
+        "name": "walk_to_strawberry",
+        "method": "walk",
+        "terrain": "ramp_up",
+        "keys": [["w", 3.5], ["d", 1.5]],
+        "validate_progress": true,
+        "speed_factor": 0.8
+      }
+    ],
+    "fallback": "hive_1"
+  },
+
+  "blue_flower_field": {
+    "segments": [
+      {
+        "name": "walk_to_blue_flower",
+        "method": "walk",
+        "terrain": "ground",
+        "keys": [["a", 2.5], ["w", 1.5]],
+        "validate_progress": true
+      }
+    ],
+    "fallback": "hive_1"
+  },
+
+  "clover_field": {
+    "segments": [
+      {
+        "name": "walk_to_clover",
+        "method": "walk",
+        "terrain": "ground",
+        "keys": [["w", 2.0], ["a", 2.0]],
+        "validate_progress": true
+      }
+    ],
+    "fallback": "hive_1"
+  },
+
+  "spider_field": {
+    "segments": [
+      {
+        "name": "walk_to_spider",
+        "method": "walk",
+        "terrain": "ramp_up",
+        "keys": [["w", 5.0], ["d", 2.0]],
+        "validate_progress": true,
+        "speed_factor": 0.7
+      }
+    ],
+    "fallback": "hive_1"
+  },
+
+  "stump_field": {
+    "segments": [
+      {
+        "name": "walk_to_stump",
+        "method": "walk",
+        "terrain": "ramp_up",
+        "keys": [["w", 6.0], ["a", 1.5]],
+        "validate_progress": true,
+        "speed_factor": 0.65
+      }
+    ],
+    "fallback": "hive_1"
+  },
+
+  "wealth_clock": {
+    "segments": [
+      {
+        "name": "walk_to_wealth_clock",
+        "method": "walk",
+        "terrain": "ground",
+        "keys": [["w", 3.0], ["d", 2.0]],
+        "validate_progress": true
+      }
+    ],
+    "fallback": "hive_1"
+  }
+}

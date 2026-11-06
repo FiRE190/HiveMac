@@ -15,3 +15,4 @@ config/settings.json
 config/last_profile.txt
 config/coordinates.json
 templates/*.png
+.claude/
