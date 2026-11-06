@@ -69,10 +69,10 @@ Remove it from the Privacy & Security lists in System Settings.
 ## Layout
 
 ```
-swift/            the native app (SwiftPM): HiveMacCore, HiveMacPlatform, HiveMacApp, tests
+swift/            the app (SwiftPM): HiveMacCore, HiveMacPlatform, HiveMacApp, tests
 config/paths/     Natro's route files, converted (GPL-3.0 data)
+tools/            the script that converted Natro's routes (Python, only needed to redo that)
 docs/             plans, research, live test checklist, TODO
-(Python files)    the older Python version, see docs/PYTHON_VERSION.md
 ```
 
 ## Development

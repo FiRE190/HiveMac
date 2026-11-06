@@ -17,17 +17,17 @@ final class ProfileTests: XCTestCase {
         XCTAssertEqual(back, f)
     }
 
-    func testProfileSaveLoadAndTheRealPythonDefaultProfile() throws {
+    func testProfileSaveLoadAndAProfileWithOnlyNames() throws {
         let tmp = FileManager.default.temporaryDirectory.appendingPathComponent("p-\(UUID().uuidString).json")
         defer { try? FileManager.default.removeItem(at: tmp) }
         var p = Profile(name: "night", fields: [FieldConfig(name: "clover"), FieldConfig(name: "stump")], notes: "n")
         p.fields[1].enabled = false
         try p.save(to: tmp)
         XCTAssertEqual(try Profile.load(tmp), p)
-        let real = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent()
-            .deletingLastPathComponent().deletingLastPathComponent().appendingPathComponent("profiles/default_profile.json")
-        let d = try Profile.load(real)
-        XCTAssertEqual(d.fields.first?.name, "sunflower")
+        // A profile with a field that only names itself gets Natro's defaults for it.
+        try Data(#"{"name": "x", "fields": [{"name": "sunflower"}]}"#.utf8).write(to: tmp)
+        let d = try Profile.load(tmp)
+        XCTAssertEqual(d.fields.first?.pattern, "corner_x_snake")
         XCTAssertEqual(d.fields.first?.returnMethod, "walk")
     }
 

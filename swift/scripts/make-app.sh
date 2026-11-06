@@ -1,13 +1,13 @@
 #!/bin/bash
 # Builds the native HiveMac.app into swift/build/ (signed ad hoc). It does NOT install anything,
-# so it never replaces the Python HiveMac.app in /Applications.
+# so it never touches /Applications.
 # Usage: swift/scripts/make-app.sh
 set -euo pipefail
 cd "$(dirname "$0")/.."
 REPO="$(cd .. && pwd)"
 
 APP_NAME="HiveMac"
-BUNDLE_ID="app.hivemac.native"      # different from the Python app's id so both can exist
+BUNDLE_ID="app.hivemac.native"      # 
 VERSION="$(tr -d '[:space:]' < "$REPO/VERSION")"
 APP="build/${APP_NAME}.app"
 RES="$APP/Contents/Resources"
@@ -23,7 +23,7 @@ cp "$BIN" "$APP/Contents/MacOS/${APP_NAME}"
 rsync -a "$REPO/config/paths/natro/" "$RES/paths/"
 cp "$REPO/config/default_config.json" "$RES/default_config.json"
 
-# Icon: the same honeycomb the Python app uses.
+# Icon: the HiveMac honeycomb.
 swift "$REPO/scripts/make-icon.swift" "build/${APP_NAME}.iconset"
 iconutil -c icns "build/${APP_NAME}.iconset" -o "$RES/${APP_NAME}.icns"
 rm -rf "build/${APP_NAME}.iconset"

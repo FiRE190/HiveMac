@@ -91,7 +91,7 @@ public struct ExtraStep: Equatable, Identifiable, Sendable {
     }
 }
 
-/// A named list of fields to farm, stored as `profiles/<name>.json` like the Python app.
+/// A named list of fields to farm, stored as `profiles/<name>.json`.
 public struct Profile: Equatable {
     public var name: String
     public var fields: [FieldConfig]

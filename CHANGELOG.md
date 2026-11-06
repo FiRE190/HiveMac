@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- Removed the older Python app. HiveMac is the native Swift app only.
+- Drag to reorder, bug runs anywhere in a run, planter timers, hotbar section, simpler Calibrate.
+
 ## 0.2.0 (unreleased): native Swift app
 
 - HiveMac is now a native Swift app (2 MB, about 30 MB of memory and 0% CPU idle, against about 156 MB and 1.4% for the Python app). The Python code stays in the repo.
