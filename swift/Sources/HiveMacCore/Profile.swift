@@ -34,14 +34,44 @@ extension FieldConfig {
     }
 }
 
+/// A step in a run besides a field. Saved with the run; the engine does not run these yet.
+public struct ExtraStep: Equatable, Identifiable, Sendable {
+    public static let bugs = ["ladybug", "rhino beetle", "spider", "mantis", "scorpion", "werewolf",
+                              "coconut crab", "king beetle", "black bear"]
+    public var id = UUID()
+    public var kind: String                 // bug_run, planters
+    public var enabled = true
+    public var everyMinutes = 30.0          // bug run: how often. planters: not used (see harvestHours)
+    public var bugs: [String] = ["ladybug", "rhino beetle"]
+    public var planterFields: [String] = ["", "", ""]
+    public var harvestHours = 4.0
+
+    public init(kind: String) { self.kind = kind }
+
+    public init(json d: [String: Any]) {
+        self.init(kind: (d["kind"] as? String) ?? "bug_run")
+        if let v = (d["enabled"] as? NSNumber)?.boolValue { enabled = v }
+        if let v = (d["every_minutes"] as? NSNumber)?.doubleValue { everyMinutes = v }
+        if let v = d["bugs"] as? [String] { bugs = v }
+        if let v = d["planter_fields"] as? [String] { planterFields = (v + ["", "", ""]).prefix(3).map { $0 } }
+        if let v = (d["harvest_hours"] as? NSNumber)?.doubleValue { harvestHours = v }
+    }
+
+    public var json: [String: Any] {
+        ["kind": kind, "enabled": enabled, "every_minutes": everyMinutes, "bugs": bugs,
+         "planter_fields": planterFields, "harvest_hours": harvestHours]
+    }
+}
+
 /// A named list of fields to farm, stored as `profiles/<name>.json` like the Python app.
 public struct Profile: Equatable {
     public var name: String
     public var fields: [FieldConfig]
     public var notes: String
+    public var extras: [ExtraStep]
 
-    public init(name: String = "default", fields: [FieldConfig] = [FieldConfig(name: "sunflower")], notes: String = "") {
-        self.name = name; self.fields = fields; self.notes = notes
+    public init(name: String = "default", fields: [FieldConfig] = [FieldConfig(name: "sunflower")], notes: String = "", extras: [ExtraStep] = []) {
+        self.name = name; self.fields = fields; self.notes = notes; self.extras = extras
     }
 
     public static func load(_ url: URL) throws -> Profile {
@@ -49,12 +79,13 @@ public struct Profile: Equatable {
         let fields = ((obj["fields"] as? [[String: Any]]) ?? []).map(FieldConfig.init(json:))
         return Profile(name: (obj["name"] as? String) ?? url.deletingPathExtension().lastPathComponent,
                        fields: fields.isEmpty ? [FieldConfig(name: "sunflower")] : fields,
-                       notes: (obj["notes"] as? String) ?? "")
+                       notes: (obj["notes"] as? String) ?? "",
+                       extras: ((obj["extras"] as? [[String: Any]]) ?? []).map(ExtraStep.init(json:)))
     }
 
     public func save(to url: URL) throws {
         try FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
-        let obj: [String: Any] = ["name": name, "fields": fields.map(\.json), "notes": notes]
+        let obj: [String: Any] = ["name": name, "fields": fields.map(\.json), "notes": notes, "extras": extras.map(\.json)]
         try JSONSerialization.data(withJSONObject: obj, options: [.prettyPrinted, .sortedKeys]).write(to: url, options: .atomic)
     }
 }

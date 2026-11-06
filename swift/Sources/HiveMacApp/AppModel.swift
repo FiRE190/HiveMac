@@ -119,7 +119,8 @@ final class AppModel: ObservableObject {
         var f3 = FieldConfig(name: "bamboo"); f3.returnMethod = "reset"
         var f4 = FieldConfig(name: "stump"); f4.enabled = false
         runs = [RunEntry(file: "demo.json", name: "Strawberry grinder"), RunEntry(file: "d2.json", name: "Clover fast")]; activeRunFile = "demo.json"
-        profile = Profile(name: "Strawberry grinder", fields: [FieldConfig(name: "sunflower"), f2, f3, f4])
+        profile = Profile(name: "Strawberry grinder", fields: [FieldConfig(name: "sunflower"), f2, f3, f4],
+                          extras: [ExtraStep(kind: "bug_run"), ExtraStep(kind: "planters")])
         hive.color = "blue"; hive.cubBuddy = true
         ["Resetting: attempt 1", "Converting: done", "Traveling: sunflower", "Gathering: sunflower corner_x_snake m w4 until 95% or 10 min",
          "Traveling: hive", "Converting: done"].forEach(append)

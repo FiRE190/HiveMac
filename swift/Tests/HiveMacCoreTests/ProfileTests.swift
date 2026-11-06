@@ -45,4 +45,18 @@ final class ProfileTests: XCTestCase {
         h.color = "blue"; h.cubBuddy = true; h.beeCount = 42; h.write(to: store)
         XCTAssertEqual(HiveProfile(store: store), h)
     }
+
+    func testExtraStepsRoundTrip() throws {
+        var bug = ExtraStep(kind: "bug_run"); bug.bugs = ["werewolf", "king beetle"]; bug.everyMinutes = 45
+        var pl = ExtraStep(kind: "planters"); pl.planterFields = ["rose", "", "clover"]; pl.harvestHours = 6
+        let p = Profile(name: "t", fields: [FieldConfig(name: "rose")], extras: [bug, pl])
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent("extras-\(UUID().uuidString).json")
+        try p.save(to: url); defer { try? FileManager.default.removeItem(at: url) }
+        let back = try Profile.load(url)
+        XCTAssertEqual(back.extras.map(\.kind), ["bug_run", "planters"])
+        XCTAssertEqual(back.extras[0].bugs, ["werewolf", "king beetle"])
+        XCTAssertEqual(back.extras[0].everyMinutes, 45)
+        XCTAssertEqual(back.extras[1].planterFields, ["rose", "", "clover"])
+        XCTAssertEqual(back.extras[1].harvestHours, 6)
+    }
 }

@@ -42,12 +42,20 @@ struct FieldsView: View {
             .padding(.horizontal, Theme.s6).padding(.top, Theme.s4).padding(.bottom, Theme.s1)
 
             ScrollView {
-                VStack(spacing: 0) {
+                VStack(alignment: .leading, spacing: 0) {
                     ForEach($model.profile.fields.indices, id: \.self) { i in
                         FieldRow(field: $model.profile.fields[i]) {
                             model.profile.fields.remove(at: i)
                         }
                         Divider().overlay(Theme.grain.opacity(0.6))
+                    }
+                    if !model.profile.extras.isEmpty {
+                        Text("Between rounds").font(Theme.serif(14)).foregroundStyle(Theme.wax).padding(.top, Theme.s4)
+                        Text("Saved with this run. HiveMac does not run these yet.").font(Theme.caption).foregroundStyle(Theme.dust).padding(.bottom, Theme.s1)
+                        ForEach($model.profile.extras) { $step in
+                            ExtraRow(step: $step) { model.profile.extras.removeAll { $0.id == step.id } }
+                            Divider().overlay(Theme.grain.opacity(0.6))
+                        }
                     }
                 }
                 .padding(.horizontal, Theme.s6)
@@ -55,21 +63,22 @@ struct FieldsView: View {
 
             HStack {
                 Menu {
-                    ForEach(FieldDefaults.order, id: \.self) { name in
-                        Button(name.capitalized) {
-                            var f = FieldConfig(name: name)
-                            f.backpackPercent = model.hive.backpackPercent
-                            model.profile.fields.append(f)
+                    Menu("Field") {
+                        ForEach(FieldDefaults.order, id: \.self) { name in
+                            Button(name.capitalized) {
+                                var f = FieldConfig(name: name)
+                                f.backpackPercent = model.hive.backpackPercent
+                                model.profile.fields.append(f)
+                            }
+                            .disabled(model.profile.fields.contains { $0.name == name })
                         }
-                        .disabled(model.profile.fields.contains { $0.name == name })
                     }
-                    Divider()
-                    Button("Bug run (later)") {}.disabled(true)
-                    Button("Planter check (later)") {}.disabled(true)
-                } label: { Text("Add to run") }
+                    Button("Bug run") { model.profile.extras.append(ExtraStep(kind: "bug_run")) }
+                    Button("Planters") { model.profile.extras.append(ExtraStep(kind: "planters")) }
+                } label: { Text("Add") }
                 .menuStyle(.button).buttonStyle(QuietButtonStyle()).fixedSize()
                 Spacer()
-                Text("Top to bottom, \(roundMinutes) per round, then it starts again.").font(Theme.caption).foregroundStyle(Theme.dust)
+                Text("Round: \(roundMinutes)").font(Theme.caption).foregroundStyle(Theme.dust)
             }
             .padding(Theme.s4)
         }
@@ -162,4 +171,71 @@ struct FieldRow: View {
     }
 
     private func label(_ t: String) -> some View { Text(t).font(Theme.caption).foregroundStyle(Theme.dust) }
+}
+
+
+struct ExtraRow: View {
+    @Binding var step: ExtraStep
+    var remove: () -> Void
+    @State private var open = true
+
+    private var title: String { step.kind == "planters" ? "Planters" : "Bug run" }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: Theme.s2) {
+            HStack(spacing: Theme.s2) {
+                Toggle("", isOn: $step.enabled).toggleStyle(.checkbox).labelsHidden().frame(width: 24)
+                Button { open.toggle() } label: {
+                    HStack(spacing: Theme.s1) {
+                        Image(systemName: open ? "chevron.down" : "chevron.right").font(.system(size: 9, weight: .bold)).frame(width: 10)
+                        Text(title).font(Theme.body).foregroundStyle(step.enabled ? Theme.wax : Theme.dust)
+                    }
+                }.buttonStyle(.plain)
+                Spacer()
+                Button(action: remove) { Image(systemName: "minus.circle") }.buttonStyle(.plain).foregroundStyle(Theme.dust)
+            }
+            .frame(height: Theme.rowHeight)
+            if open {
+                Group {
+                    if step.kind == "planters" { planters } else { bugRun }
+                }.padding(.leading, 34).padding(.bottom, Theme.s3)
+            }
+        }
+    }
+
+    private var bugRun: some View {
+        VStack(alignment: .leading, spacing: Theme.s2) {
+            HStack(spacing: Theme.s2) {
+                Text("Every").font(Theme.caption).foregroundStyle(Theme.dust)
+                TextField("", value: $step.everyMinutes, format: .number).fieldStyle(width: 56)
+                Text("minutes").font(Theme.caption).foregroundStyle(Theme.dust)
+            }
+            LazyVGrid(columns: [GridItem(.adaptive(minimum: 140), alignment: .leading)], alignment: .leading, spacing: Theme.s2) {
+                ForEach(ExtraStep.bugs, id: \.self) { bug in
+                    Toggle(bug.capitalized, isOn: Binding(
+                        get: { step.bugs.contains(bug) },
+                        set: { on in
+                            if on { if !step.bugs.contains(bug) { step.bugs.append(bug) } } else { step.bugs.removeAll { $0 == bug } }
+                        })).toggleStyle(.checkbox).font(Theme.body)
+                }
+            }
+        }
+    }
+
+    private var planters: some View {
+        VStack(alignment: .leading, spacing: Theme.s2) {
+            ForEach(0..<3, id: \.self) { i in
+                HStack(spacing: Theme.s2) {
+                    Text("Planter \(i + 1)").font(Theme.caption).foregroundStyle(Theme.dust).frame(width: 60, alignment: .leading)
+                    Choice(options: [("", "None")] + FieldDefaults.order.map { ($0, $0.capitalized) },
+                           selection: $step.planterFields[i], width: 150)
+                }
+            }
+            HStack(spacing: Theme.s2) {
+                Text("Harvest every").font(Theme.caption).foregroundStyle(Theme.dust)
+                TextField("", value: $step.harvestHours, format: .number).fieldStyle(width: 56)
+                Text("hours").font(Theme.caption).foregroundStyle(Theme.dust)
+            }
+        }
+    }
 }
