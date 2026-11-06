@@ -1,96 +1,83 @@
 """
-MSS-based screen capture with Retina display scaling support.
-All captured images are returned as BGR numpy arrays (OpenCV format).
+Small region capture with mss. Returns RGB numpy arrays in the coordinate space
+the rest of the app uses (points, as reported by the window finder). On a
+Retina display mss returns twice as many pixels per point; `scale` records that
+and `pixel()` samples the centre of the point so relative layouts stay valid.
+
+Measured on an M series Mac: one small grab costs about 0.15 ms of CPU in this
+process and 13 to 15 ms of wall time waiting for WindowServer. A few grabs per
+second are negligible; a full screen grab in a tight loop is not, so nobody
+here captures the full screen.
 """
-import subprocess
+from __future__ import annotations
+
 import threading
 from typing import Optional
 
-import mss
-import mss.tools
 import numpy as np
 
-from config.config_manager import get_config
 from utils.logger import get_logger
 
 log = get_logger(__name__)
 
 
-def _detect_scale_factor() -> float:
-    """
-    On Retina Macs, logical screen coords are half of physical pixel counts.
-    We detect by comparing screencapture output dimensions vs mss dimensions.
-    Falls back to config value if detection fails.
-    """
-    try:
-        result = subprocess.run(
-            ["system_profiler", "SPDisplaysDataType"],
-            capture_output=True, text=True, timeout=5
-        )
-        if "Retina" in result.stdout:
-            return 2.0
-    except Exception:
-        pass
-    cfg = get_config()
-    return float(cfg.get("screen.scale_factor", 2.0))
-
-
 class ScreenCapture:
-    _instance: "ScreenCapture | None" = None
-    _cls_lock = threading.Lock()
+    def __init__(self) -> None:
+        import mss
+        self._sct = mss.mss()
+        self._lock = threading.Lock()
+        self.scale = self._detect_scale()
+        log.info("ScreenCapture ready, pixel scale %.1f", self.scale)
 
-    def __new__(cls) -> "ScreenCapture":
-        with cls._cls_lock:
-            if cls._instance is None:
-                inst = super().__new__(cls)
-                inst._scale_factor: float = _detect_scale_factor()
-                inst._sct = mss.mss()
-                log.info("ScreenCapture init: scale_factor=%.1f", inst._scale_factor)
-                cls._instance = inst
-        return cls._instance
+    def _detect_scale(self) -> float:
+        try:
+            img = self._sct.grab({"left": 0, "top": 0, "width": 20, "height": 20})
+            return img.width / 20.0
+        except Exception as exc:
+            log.warning("scale detection failed: %s", exc)
+            return 1.0
 
-    @property
-    def scale_factor(self) -> float:
-        return self._scale_factor
-
-    def capture_full(self) -> np.ndarray:
-        monitor = self._sct.monitors[1]  # primary display
-        sct_img = self._sct.grab(monitor)
-        frame = np.array(sct_img)
-        return frame[:, :, :3]  # drop alpha, keep BGR
-
-    def capture_region(self, region: dict) -> Optional[np.ndarray]:
-        """
-        region: {"left": int, "top": int, "width": int, "height": int}
-        All values are in logical (non-retina) pixels.
-        Returns None if region is unset (zero dimensions).
-        """
-        if region.get("width", 0) == 0 or region.get("height", 0) == 0:
+    def grab(self, region: dict) -> Optional[np.ndarray]:
+        """region in points -> RGB array (H, W, 3) in device pixels."""
+        if region.get("width", 0) <= 0 or region.get("height", 0) <= 0:
             return None
         try:
-            sct_img = self._sct.grab(region)
-            frame = np.array(sct_img)
-            return frame[:, :, :3]
-        except Exception as e:
-            log.warning("Screen capture region failed: %s", e)
+            with self._lock:
+                img = self._sct.grab({k: int(region[k]) for k in ("left", "top", "width", "height")})
+            arr = np.frombuffer(img.bgra, dtype=np.uint8).reshape(img.height, img.width, 4)
+            return arr[:, :, [2, 1, 0]]
+        except Exception as exc:
+            log.warning("grab failed for %s: %s", region, exc)
             return None
 
-    def capture_named_region(self, name: str) -> Optional[np.ndarray]:
-        cfg = get_config()
-        region = cfg.get(f"screen.regions.{name}", None)
-        if region is None:
-            log.debug("Region '%s' not calibrated", name)
+    def pixel(self, x: int, y: int) -> Optional[tuple[int, int, int]]:
+        """RGB of the point (x, y). Grabs a 1x1 point region and samples its centre."""
+        arr = self.grab({"left": int(x), "top": int(y), "width": 1, "height": 1})
+        if arr is None or arr.size == 0:
             return None
-        return self.capture_region(region)
+        cy, cx = arr.shape[0] // 2, arr.shape[1] // 2
+        r, g, b = arr[cy, cx]
+        return int(r), int(g), int(b)
 
-    def logical_to_physical(self, x: int, y: int) -> tuple[int, int]:
-        """Convert logical (pyautogui) coords to physical pixel coords."""
-        return int(x * self._scale_factor), int(y * self._scale_factor)
+    def save_png(self, region: dict, path: str) -> bool:
+        try:
+            import mss.tools
+            with self._lock:
+                img = self._sct.grab({k: int(region[k]) for k in ("left", "top", "width", "height")})
+            mss.tools.to_png(img.rgb, img.size, output=path)
+            return True
+        except Exception as exc:
+            log.warning("save_png failed: %s", exc)
+            return False
 
-    def physical_to_logical(self, x: int, y: int) -> tuple[int, int]:
-        """Convert physical pixel coords to logical (pyautogui) coords."""
-        return int(x / self._scale_factor), int(y / self._scale_factor)
+
+_instance: Optional[ScreenCapture] = None
+_lock = threading.Lock()
 
 
 def get_screen_capture() -> ScreenCapture:
-    return ScreenCapture()
+    global _instance
+    with _lock:
+        if _instance is None:
+            _instance = ScreenCapture()
+    return _instance

@@ -50,7 +50,7 @@ class Watchdog:
 
     def _run(self) -> None:
         sm = get_state()
-        idle_states = {"IDLE", "PAUSED"}
+        idle_states = {"IDLE", "PAUSED", "ERROR"}
 
         while self._running:
             time.sleep(self._interval)
@@ -78,6 +78,11 @@ class Watchdog:
         key_str = cfg.get("app.emergency_stop_key", "f9")
         hotkey_map = {f"<{key_str}>": self._emergency_stop}
 
+        from setup import permissions
+        if permissions.check().hotkey_ok is False:
+            log.warning("F9 stop key disabled: Input Monitoring is off for this terminal. "
+                        "The Stop button and the phone page still work.")
+            return
         try:
             self._hotkey_listener = keyboard.GlobalHotKeys(hotkey_map)
             self._hotkey_listener.daemon = True

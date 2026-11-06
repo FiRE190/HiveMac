@@ -1,20 +1,7 @@
 {
   "name": "default",
-  "target_field": "Sunflower Field",
-  "backup_field": "Dandelion Field",
-  "movement_pattern": "circular",
-  "backpack_threshold_pct": 90,
-  "farming_duration_min": 0,
-  "mob_run_enabled": true,
-  "wealth_clock_enabled": true,
-  "sprinkler_enabled": false,
-  "randomness": 0.3,
-  "wealth_clock_interval_min": 61,
-  "mob_run_interval_min": 64,
-  "graphics_level": 3,
-  "reduce_brightness": false,
-  "brightness_level": 50,
-  "waypoints": {},
-  "mob_route": ["Stump Field", "Mushroom Field", "Spider Field"],
-  "notes": ""
+  "fields": [
+    {"name": "sunflower", "enabled": true, "minutes": 10, "backpack_percent": 95, "travel": "default", "return_method": "walk"}
+  ],
+  "notes": "Fields take Natro's defaults for pattern, size, width, camera and sprinkler corner unless you override them here."
 }

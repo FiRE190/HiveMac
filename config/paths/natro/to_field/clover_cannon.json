@@ -1,0 +1,52 @@
+{
+ "name": "clover_cannon",
+ "source": "NatroMacro paths/gtf-clover.ahk (cannon branch)",
+ "walk_speed": 28.0,
+ "notes": "Converted from Natro Macro (GPL-3.0). Hold steps are at walk speed 28.",
+ "steps": [
+  {
+   "type": "gotoramp"
+  },
+  {
+   "type": "gotocannon"
+  },
+  {
+   "type": "rotate",
+   "direction": "left"
+  },
+  {
+   "type": "hold",
+   "keys": [
+    "w"
+   ],
+   "seconds": 0.1
+  },
+  {
+   "type": "tap",
+   "key": "e"
+  },
+  {
+   "type": "hold",
+   "keys": [
+    "w"
+   ],
+   "seconds": 1.1
+  },
+  {
+   "type": "wait",
+   "seconds": 3.767
+  },
+  {
+   "type": "tap",
+   "key": "space"
+  },
+  {
+   "type": "rotate",
+   "direction": "right"
+  },
+  {
+   "type": "wait",
+   "seconds": 1.5
+  }
+ ]
+}

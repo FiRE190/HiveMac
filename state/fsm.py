@@ -1,69 +1,41 @@
 """
-Finite state machine for the macro control flow.
-
-Valid states:
-  IDLE, FARMING, RETURNING_TO_HIVE, CONVERTING_POLLEN,
-  WEALTH_CLOCK, MOB_RUN, DEATH_RECOVERY, PAUSED
-
-Transitions are validated against an allow-list; illegal transitions raise ValueError.
+The macro's control states. The loop reports where it is; the UI and the remote
+page show it. PAUSED can be entered from any running state and returns to the
+previous one; IDLE can be reached from anywhere (stop).
 """
 import threading
 from typing import Callable
-from utils.logger import get_logger
+
 from state.state_manager import StateManager
+from utils.logger import get_logger
 
 log = get_logger(__name__)
 
-# States
 IDLE = "IDLE"
-FARMING = "FARMING"
-RETURNING_TO_HIVE = "RETURNING_TO_HIVE"
-CONVERTING_POLLEN = "CONVERTING_POLLEN"
-WEALTH_CLOCK = "WEALTH_CLOCK"
-MOB_RUN = "MOB_RUN"
-DEATH_RECOVERY = "DEATH_RECOVERY"
+RESETTING = "RESETTING"
+CONVERTING = "CONVERTING"
+TRAVELING = "TRAVELING"
+GATHERING = "GATHERING"
 PAUSED = "PAUSED"
+ERROR = "ERROR"
 
-ALL_STATES = {
-    IDLE, FARMING, RETURNING_TO_HIVE, CONVERTING_POLLEN,
-    WEALTH_CLOCK, MOB_RUN, DEATH_RECOVERY, PAUSED,
-}
+ALL_STATES = {IDLE, RESETTING, CONVERTING, TRAVELING, GATHERING, PAUSED, ERROR}
+RUNNING_STATES = {RESETTING, CONVERTING, TRAVELING, GATHERING}
 
-# (from_state, to_state) pairs that are legal
 _ALLOWED: set[tuple[str, str]] = {
-    (IDLE,               FARMING),
-    (FARMING,            RETURNING_TO_HIVE),
-    (FARMING,            WEALTH_CLOCK),
-    (FARMING,            MOB_RUN),
-    (FARMING,            DEATH_RECOVERY),
-    (FARMING,            IDLE),
-    (RETURNING_TO_HIVE,  CONVERTING_POLLEN),
-    (RETURNING_TO_HIVE,  IDLE),
-    (CONVERTING_POLLEN,  FARMING),
-    (CONVERTING_POLLEN,  IDLE),
-    (WEALTH_CLOCK,       FARMING),
-    (WEALTH_CLOCK,       IDLE),
-    (MOB_RUN,            FARMING),
-    (MOB_RUN,            IDLE),
-    (DEATH_RECOVERY,     FARMING),
-    (DEATH_RECOVERY,     IDLE),
-    # Any → PAUSED and PAUSED → prior state
-    (FARMING,            PAUSED),
-    (RETURNING_TO_HIVE,  PAUSED),
-    (CONVERTING_POLLEN,  PAUSED),
-    (WEALTH_CLOCK,       PAUSED),
-    (MOB_RUN,            PAUSED),
-    (DEATH_RECOVERY,     PAUSED),
-    (PAUSED,             FARMING),
-    (PAUSED,             RETURNING_TO_HIVE),
-    (PAUSED,             CONVERTING_POLLEN),
-    (PAUSED,             WEALTH_CLOCK),
-    (PAUSED,             MOB_RUN),
-    (PAUSED,             DEATH_RECOVERY),
-    (PAUSED,             IDLE),
-    # Emergency stop from any state
+    (IDLE, RESETTING),
+    (RESETTING, CONVERTING), (RESETTING, TRAVELING), (RESETTING, RESETTING),
+    (CONVERTING, TRAVELING), (CONVERTING, RESETTING),
+    (TRAVELING, GATHERING), (TRAVELING, RESETTING),
+    (GATHERING, RESETTING), (GATHERING, TRAVELING), (GATHERING, CONVERTING),
+    *{(s, PAUSED) for s in RUNNING_STATES},
+    *{(PAUSED, s) for s in RUNNING_STATES},
+    *{(s, ERROR) for s in ALL_STATES},
     *{(s, IDLE) for s in ALL_STATES},
 }
+
+STATUS_TO_STATE = {"resetting": RESETTING, "converting": CONVERTING, "traveling": TRAVELING,
+                   "gathering": GATHERING, "error": ERROR}
 
 
 class FSM:
@@ -86,24 +58,20 @@ class FSM:
             if from_state == to_state:
                 return True
             if not force and not self.can_transition(to_state):
-                log.warning("FSM: illegal transition %s → %s", from_state, to_state)
+                log.warning("FSM: illegal transition %s to %s", from_state, to_state)
                 return False
-
-            log.info("FSM: %s → %s", from_state, to_state)
+            log.debug("FSM: %s to %s", from_state, to_state)
             for cb in self._exit_callbacks.get(from_state, []):
                 try:
                     cb(from_state, to_state)
                 except Exception as e:
                     log.error("FSM exit callback error: %s", e)
-
             self._sm.set(previous_state=from_state, current_state=to_state)
-
             for cb in self._enter_callbacks.get(to_state, []):
                 try:
                     cb(from_state, to_state)
                 except Exception as e:
                     log.error("FSM enter callback error: %s", e)
-
             return True
 
     def on_enter(self, state: str, callback: Callable) -> None:

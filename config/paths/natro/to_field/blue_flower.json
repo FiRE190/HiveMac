@@ -1,0 +1,31 @@
+{
+ "name": "blue_flower",
+ "source": "NatroMacro paths/gtf-blueflower.ahk (walk branch)",
+ "walk_speed": 28.0,
+ "notes": "Converted from Natro Macro (GPL-3.0). Hold steps are at walk speed 28.",
+ "steps": [
+  {
+   "type": "gotoramp"
+  },
+  {
+   "type": "walk",
+   "keys": [
+    "s",
+    "a"
+   ],
+   "tiles": 86.875
+  },
+  {
+   "type": "walk",
+   "keys": [
+    "a"
+   ],
+   "tiles": 28.0
+  },
+  {
+   "type": "rotate",
+   "direction": "left",
+   "count": 2
+  }
+ ]
+}

@@ -1,10 +1,10 @@
 """
-Singleton thread-safe shared state.  All backend threads write here;
-the UI reads via subscribe() callbacks or direct attribute access.
+Singleton thread safe shared state. Backend threads write here; the UI and the
+remote page read snapshots.
 """
 import threading
 import time
-from typing import Callable, Any
+from typing import Any, Callable
 
 
 class StateManager:
@@ -17,11 +17,10 @@ class StateManager:
                 inst = super().__new__(cls)
                 inst._lock = threading.RLock()
                 inst._subscribers: list[Callable] = []
-
-                # ---- public state fields ---- #
                 inst.current_state: str = "IDLE"
                 inst.previous_state: str = "IDLE"
-                inst.current_field: str = "None"
+                inst.detail: str = ""
+                inst.current_field: str = ""
                 inst.backpack_pct: int = 0
                 inst.runtime_seconds: int = 0
                 inst.is_paused: bool = False
@@ -32,13 +31,14 @@ class StateManager:
                 inst.farming_start_time: float | None = None
                 inst.error_count: int = 0
                 inst.last_error: str = ""
-                inst.mob_run_count: int = 0
-                inst.wealth_clock_count: int = 0
-
+                inst.cycles: int = 0
+                inst.converts: int = 0
+                inst.deaths: int = 0
+                inst.resets: int = 0
+                inst.last_result: str = ""
+                inst.remote_urls: list[str] = []
                 cls._instance = inst
         return cls._instance
-
-    # ------------------------------------------------------------------ #
 
     def set(self, **kwargs: Any) -> None:
         with self._lock:
@@ -64,7 +64,6 @@ class StateManager:
             self._subscribers = [c for c in self._subscribers if c is not callback]
 
     def _notify(self) -> None:
-        subs = []
         with self._lock:
             subs = list(self._subscribers)
         for cb in subs:
@@ -76,18 +75,23 @@ class StateManager:
     def snapshot(self) -> dict:
         with self._lock:
             return {
-                "current_state": self.current_state,
+                "state": self.current_state,
                 "previous_state": self.previous_state,
-                "current_field": self.current_field,
+                "detail": self.detail,
+                "field": self.current_field,
                 "backpack_pct": self.backpack_pct,
                 "runtime_seconds": self.runtime_seconds,
                 "is_paused": self.is_paused,
-                "active_profile_name": self.active_profile_name,
+                "profile": self.active_profile_name,
                 "debug_mode": self.debug_mode,
                 "error_count": self.error_count,
                 "last_error": self.last_error,
-                "mob_run_count": self.mob_run_count,
-                "wealth_clock_count": self.wealth_clock_count,
+                "cycles": self.cycles,
+                "converts": self.converts,
+                "deaths": self.deaths,
+                "resets": self.resets,
+                "last_result": self.last_result,
+                "remote_urls": list(self.remote_urls),
                 "last_heartbeat": self.last_heartbeat,
             }
 

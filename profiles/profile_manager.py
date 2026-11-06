@@ -7,13 +7,15 @@ import threading
 from pathlib import Path
 from typing import Optional
 
+from utils import appdirs
 from utils.logger import get_logger
 
 log = get_logger(__name__)
 
-_PROFILES_DIR = Path(__file__).parent
-_LAST_PROFILE_FILE = Path(__file__).parent.parent / "config" / "last_profile.txt"
-_DEFAULT_PROFILE_PATH = _PROFILES_DIR / "default_profile.json"
+
+_PROFILES_DIR = appdirs.profiles_dir()
+_LAST_PROFILE_FILE = appdirs.last_profile_path()
+_DEFAULT_PROFILE_PATH = Path(__file__).parent / "default_profile.json"
 
 
 def _load_default_template() -> dict:
@@ -58,6 +60,7 @@ class ProfileManager:
     def save(self, profile: dict) -> None:
         name = profile.get("name", "unnamed")
         path = _PROFILES_DIR / f"{name}.json"
+        _PROFILES_DIR.mkdir(parents=True, exist_ok=True)
         with self._lock:
             with open(path, "w", encoding="utf-8") as f:
                 json.dump(profile, f, indent=2)

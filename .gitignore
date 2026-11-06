@@ -1,8 +1,5 @@
 __pycache__/
 *.pyc
-*.pyo
-*.pyd
-.Python
 .env
 .venv
 venv/
@@ -13,6 +10,13 @@ debug/
 *.swp
 config/settings.json
 config/last_profile.txt
-config/coordinates.json
+config/paths/user/
 templates/*.png
+profiles/*.json
+!profiles/default_profile.json
 .claude/
+Icon
+
+swift/.build/
+swift/.swiftpm/
+swift/build/

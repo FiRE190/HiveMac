@@ -20,7 +20,7 @@ _LEVEL_COLORS = {
 
 
 class LogConsole(ctk.CTkFrame):
-    def __init__(self, parent, poll_ms: int = 200, max_lines: int = 500, **kwargs) -> None:
+    def __init__(self, parent, poll_ms: int = 500, max_lines: int = 500, **kwargs) -> None:
         super().__init__(parent, **kwargs)
         self._poll_ms = poll_ms
         self._max_lines = max_lines

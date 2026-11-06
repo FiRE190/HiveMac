@@ -1,0 +1,54 @@
+{
+ "name": "blue_flower_cannon",
+ "source": "NatroMacro paths/gtf-blueflower.ahk (cannon branch)",
+ "walk_speed": 28.0,
+ "notes": "Converted from Natro Macro (GPL-3.0). Hold steps are at walk speed 28.",
+ "steps": [
+  {
+   "type": "gotoramp"
+  },
+  {
+   "type": "gotocannon"
+  },
+  {
+   "type": "wait",
+   "seconds": 0.1
+  },
+  {
+   "type": "tap",
+   "key": "e"
+  },
+  {
+   "type": "hold",
+   "keys": [
+    "a"
+   ],
+   "seconds": 0.675
+  },
+  {
+   "type": "tap",
+   "key": "space",
+   "count": 2
+  },
+  {
+   "type": "hold",
+   "keys": [
+    "a"
+   ],
+   "seconds": 2.0
+  },
+  {
+   "type": "wait",
+   "seconds": 1.25
+  },
+  {
+   "type": "rotate",
+   "direction": "left",
+   "count": 2
+  },
+  {
+   "type": "wait",
+   "seconds": 1.0
+  }
+ ]
+}

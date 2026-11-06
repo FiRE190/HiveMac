@@ -5,8 +5,7 @@ exclude = ["venv", ".venv", "logs", "debug"]
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "B"]
-# WIP code: style-only rules are off until the macro works; undefined names and real errors stay on.
-ignore = ["B007", "E731", "F841", "E402", "E501"]
+ignore = ["E731", "E501"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
