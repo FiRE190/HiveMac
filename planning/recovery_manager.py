@@ -75,6 +75,12 @@ class RecoveryLevel(Enum):
     FULL_RESET          = 7
 
 
+# Levels 5 to 7 call Navigator.go_to() from inside a running go_to(), which resets the
+# outer recovery state and is refused by the recovery arbiter. Until that is restructured,
+# escalation stops here and the route reports failure instead of looping.
+_MAX_ESCALATION = RecoveryLevel.ALTERNATE_ROUTE
+
+
 @dataclass
 class RecoveryResult:
     """Outcome of one recovery attempt."""
@@ -181,7 +187,7 @@ class RecoveryManager:
             if not result.escalate:
                 return result
             next_val = level.value + 1
-            if next_val > RecoveryLevel.FULL_RESET.value:
+            if next_val > _MAX_ESCALATION.value:
                 return RecoveryResult(
                     succeeded=False,
                     level=level,

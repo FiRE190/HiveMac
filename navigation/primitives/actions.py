@@ -254,7 +254,7 @@ class UseCannon(BasePrimitive):
 
 class ResetCharacter(BasePrimitive):
     """
-    Press R to reset the character.
+    Reset the character the way Roblox does it: Esc (menu), R (Reset Character), Enter.
 
     Waits for the death/respawn screen to appear and clear before returning.
     Only call during RecoveryManager escalation — this is a last-resort action.
@@ -280,9 +280,13 @@ class ResetCharacter(BasePrimitive):
         t0 = time.monotonic()
         pg = self._input._pg
 
-        log.info("ResetCharacter: pressing R to reset")
+        log.info("ResetCharacter: Esc, R, Enter (Roblox reset character)")
         if pg:
+            pg.press("esc")
+            time.sleep(0.4)
             pg.press("r")
+            time.sleep(0.4)
+            pg.press("enter")
 
         deadline   = t0 + self._reset_wait
         respawned  = False

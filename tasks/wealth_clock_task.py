@@ -9,6 +9,7 @@ import pyautogui
 
 from tasks.base_task import BaseTask
 from navigation.route_manager import get_route_manager
+from navigation.node_names import field_to_node
 from movement.randomizer import human_sleep
 from detection.wealth_clock_detector import is_wealth_clock_visible
 from state.fsm import FSM
@@ -56,8 +57,13 @@ class WealthClockTask(BaseTask):
 
         if reset_char and not self._check_stop():
             log.info("WealthClockTask: resetting character")
-            pyautogui.hotkey("ctrl", "shift", "r")
-            human_sleep(3000, 500)
+            # Roblox: Esc opens the menu, R selects Reset Character, Enter confirms.
+            pyautogui.press("esc")
+            human_sleep(400, 80)
+            pyautogui.press("r")
+            human_sleep(400, 80)
+            pyautogui.press("enter")
+            human_sleep(4000, 500)
 
         if self._check_stop():
             return
@@ -66,7 +72,7 @@ class WealthClockTask(BaseTask):
         rm.execute(hive_node, self._stop_event)
         human_sleep(500, 100)
 
-        field = self._profile.get("target_field", "")
+        field = field_to_node(self._profile.get("target_field", ""))
         if field and not self._check_stop():
             log.info("WealthClockTask: returning to '%s'", field)
             rm.execute(field, self._stop_event)

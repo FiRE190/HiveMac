@@ -141,6 +141,8 @@ class SpeedCalibrator:
     def _save_to_config(self, speed: float) -> None:
         try:
             from config.config_manager import get_config
-            get_config().set(_CONFIG_KEY, speed)
+            cfg = get_config()
+            cfg.set(_CONFIG_KEY, speed)
+            cfg.save()                       # otherwise it recalibrates on every launch
         except Exception:
             pass

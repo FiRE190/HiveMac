@@ -10,6 +10,8 @@ import pyautogui
 
 from tasks.base_task import BaseTask
 from navigation.route_manager import get_route_manager
+from navigation.node_names import field_to_node
+from state.state_manager import get_state
 from movement.randomizer import human_sleep
 from detection.hive_detector import is_at_hive
 from detection.backpack_detector import get_backpack_pct
@@ -59,9 +61,10 @@ class HiveTask(BaseTask):
             if self._check_stop():
                 break
 
+            get_state().heartbeat()          # keep the watchdog quiet during a long conversion
             pct = get_backpack_pct()
-            if pct == 0:
-                log.info("HiveTask: backpack empty")
+            if pct <= 3:                      # the fill estimate is noisy near zero
+                log.info("HiveTask: backpack empty (%.0f%%)", pct)
                 break
 
             pyautogui.keyDown(_CONVERT_KEY)
@@ -72,7 +75,7 @@ class HiveTask(BaseTask):
         human_sleep(500, 100)
 
         # Return to the assigned field via nav stack
-        field = self._profile.get("target_field", "")
+        field = field_to_node(self._profile.get("target_field", ""))
         if field and not self._check_stop():
             log.info("HiveTask: returning to '%s'", field)
             rm.execute(field, self._stop_event)

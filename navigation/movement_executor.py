@@ -41,6 +41,14 @@ from utils.logger import get_logger
 
 log = get_logger(__name__)
 
+
+def _heartbeat() -> None:
+    try:
+        from state.state_manager import get_state
+        get_state().heartbeat()
+    except Exception:
+        pass
+
 # Optical flow sample interval during key hold (s)
 _FLOW_TICK = 0.045
 # Consecutive stuck duration before triggering recovery (s)
@@ -87,6 +95,11 @@ class MovementExecutor:
     def set_base_speed(self, px_per_sec: float) -> None:
         self._base_speed = px_per_sec
         self._terrain.set_base_speed(px_per_sec)
+
+    def current_terrain_name(self) -> str:
+        """Name of the terrain the live estimator currently believes we are on."""
+        terrain = self._terrain.current_terrain()
+        return terrain.name if terrain is not None else "GROUND"
 
     def calibrate(self, stop_event: threading.Event) -> float:
         from movement.speed_calibrator import SpeedCalibrator
@@ -180,13 +193,14 @@ class MovementExecutor:
 
             segments_done += 1
             is_last_segment = (segments_done == n_segments)
+            _heartbeat()                      # a long route must not trip the watchdog
 
             # Only scan for arrival landmark on the last movement segment.
             # Intermediate segments use time bounds — we don't expect the
             # destination to be visible yet.
             arrival = edge.arrival_landmark if is_last_segment else None
 
-            timeout = self._compute_timeout(base_dur, edge.terrain)
+            timeout = self._compute_timeout(base_dur, edge.terrain, final=is_last_segment)
             result  = self._walk_burst(
                 key, timeout, stop_event, recovery,
                 arrival_landmark=arrival,
@@ -211,7 +225,7 @@ class MovementExecutor:
 
         return EdgeStatus.SUCCESS
 
-    def _compute_timeout(self, base_dur: float, terrain: TerrainHint) -> float:
+    def _compute_timeout(self, base_dur: float, terrain: TerrainHint, final: bool = True) -> float:
         """
         Convert a baseline duration into a generous upper-bound timeout.
 
@@ -228,7 +242,10 @@ class MovementExecutor:
             ratio = max(0.4, min(2.0, ratio))
         else:
             ratio = 1.0
-        dur = (base_dur * hint_mult / ratio) * _TIMEOUT_MARGIN
+        # Intermediate segments have no landmark to stop on, so the big safety margin would
+        # make every one of them overshoot. Only the final, landmark-terminated segment gets it.
+        margin = _TIMEOUT_MARGIN if final else 1.15
+        dur = (base_dur * hint_mult / ratio) * margin
         return max(_BURST_MIN, min(_BURST_MAX, dur))
 
     def _walk_burst(

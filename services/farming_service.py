@@ -36,6 +36,7 @@ class FarmingService:
         self._runtime_thread: Optional[threading.Thread] = None
         self._runtime_stop = threading.Event()
         self._active_profile: dict = {}
+        self._interrupt_task = None          # WealthClockTask / MobRunTask while one runs
         self._scheduler_lock = threading.Lock()
         self._interrupt_lock = threading.Lock()
 
@@ -67,9 +68,10 @@ class FarmingService:
         self._start_farming_task(profile)
         self._start_runtime_timer()
 
-        if profile.get("wealth_clock_enabled", True):
-            if profile.get("reduce_brightness", False):
-                self._power_manager.reduce_brightness(profile.get("brightness_level", 50))
+        if profile.get("reduce_brightness", False):
+            self._power_manager.reduce_brightness(profile.get("brightness_level", 50))
+        # Mob runs are off unless the profile enables them: they need templates that do not exist yet.
+        if profile.get("wealth_clock_enabled", True) or profile.get("mob_run_enabled", False):
             self._start_scheduler(profile)
 
         log.info("FarmingService started with profile '%s'", profile.get("name"))
@@ -97,7 +99,10 @@ class FarmingService:
         self._runtime_stop.set()
 
         if self._farming_task:
-            self._farming_task.stop()
+            self._farming_task.stop()           # also stops its hive / death child task
+        if self._interrupt_task:
+            self._interrupt_task.stop()
+        self._release_input()
 
         self._sm.set(is_paused=False)
         self._fsm.transition(IDLE, force=True)
@@ -107,6 +112,20 @@ class FarmingService:
     @property
     def fsm(self) -> FSM:
         return self._fsm
+
+    @staticmethod
+    def _release_input() -> None:
+        """Let go of every key and mouse button, whatever a task was holding."""
+        try:
+            from execution.input_interface import get_input
+            get_input().release_all()
+        except Exception as exc:
+            log.debug("release_all failed: %s", exc)
+        try:
+            import pyautogui
+            pyautogui.mouseUp(button="left")
+        except Exception:
+            pass
 
     # ------------------------------------------------------------------ #
     # Internal                                                             #
@@ -159,8 +178,15 @@ class FarmingService:
             self._fsm.transition(WEALTH_CLOCK, force=True)
 
             task = WealthClockTask(self._fsm, self._active_profile)
+            self._interrupt_task = task
             t = task.start_threaded()
             t.join(timeout=180)
+            if t.is_alive():
+                log.warning("Wealth clock task overran 180 s, stopping it")
+                task.stop()
+                t.join(timeout=10)
+                self._release_input()
+            self._interrupt_task = None
 
             self._fsm.transition(FARMING, force=True)
             if self._farming_task:
@@ -170,7 +196,7 @@ class FarmingService:
         if self._sm.current_state not in (FARMING,):
             log.info("Mob run skipped (state=%s)", self._sm.current_state)
             return
-        if not self._active_profile.get("mob_run_enabled", True):
+        if not self._active_profile.get("mob_run_enabled", False):
             return
 
         with self._interrupt_lock:
@@ -180,8 +206,15 @@ class FarmingService:
             self._fsm.transition(MOB_RUN, force=True)
 
             task = MobRunTask(self._fsm, self._active_profile)
+            self._interrupt_task = task
             t = task.start_threaded()
             t.join(timeout=300)
+            if t.is_alive():
+                log.warning("Mob run task overran 300 s, stopping it")
+                task.stop()
+                t.join(timeout=10)
+                self._release_input()
+            self._interrupt_task = None
 
             self._fsm.transition(FARMING, force=True)
             if self._farming_task:

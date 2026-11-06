@@ -108,6 +108,11 @@ class Navigator:
     # Session setup                                                        #
     # ------------------------------------------------------------------ #
 
+    def set_base_speed(self, px_per_sec: float) -> None:
+        """Share a speed measured elsewhere (the farming loop's calibrator) with the executor."""
+        if px_per_sec > 0:
+            self._executor.set_base_speed(px_per_sec)
+
     def calibrate(self, stop_event: threading.Event) -> float:
         """Measure baseline movement speed. Call once per farming session."""
         speed = self._executor.calibrate(stop_event)
@@ -499,15 +504,9 @@ class Navigator:
     def _get_current_terrain(self) -> str:
         """Get current terrain name from TerrainEstimator. Defaults to 'GROUND'."""
         try:
-            from movement.terrain_estimator import TerrainEstimator
-            frame = self._fm.full_frame()
-            if frame is not None:
-                te = TerrainEstimator()
-                terrain = te.estimate(frame)
-                return terrain.name if terrain else "GROUND"
+            return self._executor.current_terrain_name()
         except Exception:
-            pass
-        return "GROUND"
+            return "GROUND"
 
     def _maybe_decay(self, now: float) -> None:
         """Trigger passive drift decay if enough time has passed."""

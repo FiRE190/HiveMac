@@ -215,6 +215,22 @@ class FusionEngine:
             if r.confidence > best_conf:
                 best_conf = r.confidence
 
+        # No template file for any of this anchor's landmarks yet: use the landmark detector's
+        # HSV colour profile instead, so validation can still confirm an arrival. Without this,
+        # every edge fails validation until all templates have been captured.
+        if best_conf == 0.0:
+            try:
+                import cv2
+                from navigation.landmark_detector import get_landmark_detector
+                det = get_landmark_detector()
+                for lm_name in anchor.landmark_names:
+                    if self._ts.has_template(lm_name, subdir="landmarks"):
+                        continue
+                    conf, _rect = det._color_match(frame, lm_name, cv2)
+                    best_conf = max(best_conf, conf * 0.85)
+            except Exception:
+                pass
+
         return best_conf
 
     def _terrain_signal(

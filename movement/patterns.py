@@ -139,7 +139,7 @@ class WaypointPattern(MovementPattern):
 class PatternFactory:
     _registry = {
         "circular": CircularPattern,
-        "zig-zag": ZigZagPattern,
+        "zig_zag": ZigZagPattern,
         "zigzag": ZigZagPattern,
         "spiral": SpiralPattern,
         "corner": CornerRotationPattern,
@@ -149,8 +149,12 @@ class PatternFactory:
 
     @classmethod
     def create(cls, name: str, **kwargs) -> MovementPattern:
-        key = name.lower().replace(" ", "_")
+        key = name.lower().replace(" ", "_").replace("-", "_")
         klass = cls._registry.get(key, CircularPattern)
+        if klass is WaypointPattern and not kwargs.get("waypoints"):
+            # No waypoints recorded for this profile: fall back instead of crashing.
+            kwargs.pop("waypoints", None)
+            return CircularPattern(**kwargs)
         return klass(**kwargs)
 
     @classmethod

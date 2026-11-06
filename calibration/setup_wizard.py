@@ -367,19 +367,17 @@ class SetupWizard(ctk.CTkToplevel):
     def _do_capture_template(self) -> None:
         step     = _STEPS[self._step_index]
         filename = step["key"]
-        self._action_btn.configure(text="Capturing in 3s...", state="disabled")
+        self._action_btn.configure(text="Drag a box around it in Roblox...", state="disabled")
+        from calibration.region_picker import RegionPicker
+        from calibration.calibration_tool import crop_to_region
+        from detection.screen_capture import get_screen_capture
 
-        def _run():
-            time.sleep(3)
+        def _run(region: dict):
+            time.sleep(1)
             try:
-                import mss
                 import cv2
                 _TEMPLATES_DIR.mkdir(parents=True, exist_ok=True)
-                with mss.mss() as sct:
-                    monitor = sct.monitors[1]
-                    sct_img = sct.grab(monitor)
-                    import numpy as np
-                    img = np.array(sct_img)[:, :, :3]
+                img = crop_to_region(get_screen_capture().capture_full(), region)
                 path = _TEMPLATES_DIR / filename
                 cv2.imwrite(str(path), img)
                 log.info("Template saved: %s", path)
@@ -396,7 +394,10 @@ class SetupWizard(ctk.CTkToplevel):
                     state="normal",
                 ))
 
-        threading.Thread(target=_run, daemon=True).start()
+        def _picked(_key: str, region: dict) -> None:
+            threading.Thread(target=_run, args=(region,), daemon=True).start()
+
+        self.after(200, lambda: RegionPicker(self, f"template:{filename}", on_saved=_picked).show())
 
     def _do_pick_region(self) -> None:
         step = _STEPS[self._step_index]

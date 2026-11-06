@@ -199,8 +199,11 @@ class LocalizationEngine:
                 belief.evidence_sources["_ema_obj"] = ema
 
             belief = self._beliefs[anchor_id]
-            belief.last_seen        = now
-            belief.evidence_sources = signals
+            belief.last_seen = now
+            ema_obj = belief.evidence_sources.get("_ema_obj")
+            belief.evidence_sources = dict(signals)
+            if ema_obj is not None:
+                belief.evidence_sources["_ema_obj"] = ema_obj   # keep the smoother across updates
 
             # Hysteresis: track frames above entry threshold
             if belief.confidence >= _ENTER_THRESHOLD:
@@ -391,8 +394,12 @@ class LocalizationEngine:
     def observe(self, reading) -> None:
         """Legacy compatibility: accept a LandmarkReading."""
         if hasattr(reading, "confidence") and hasattr(reading, "name"):
+            from navigation.node_names import landmark_to_node
+            node = landmark_to_node(reading.name)
+            if node is None:
+                return                        # a landmark that belongs to no node is not a position
             self.update_from_fusion(
-                anchor_id=reading.name,
+                anchor_id=node,
                 fusion_confidence=reading.confidence,
                 signals={"landmark": reading.confidence},
             )

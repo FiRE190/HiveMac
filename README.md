@@ -52,6 +52,18 @@ committed.
 
 Press **F9** at any time to stop everything.
 
+## What still needs the real game
+
+The code paths are complete and tested as far as they can be without Roblox. These values
+can only be settled with the game open, through the calibration tools:
+
+- The backpack % screen region and its colour thresholds (Start refuses to run without the region).
+- Cropped templates for the hive UI and the respawn screen, and landmark crops in
+  `templates/landmarks/` (the capture tools now save the dragged box, not the whole screen).
+- Key durations in `config/nav_map.json`, especially the two wealth clock edges marked
+  `_needs_tuning`, and the cannon timing.
+- The camera reset key and degrees per rotation tap.
+
 ## How the code is organised
 
 ```
