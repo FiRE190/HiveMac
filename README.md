@@ -37,7 +37,7 @@ how long to stay on each, and press Start.
 ## Requirements
 
 - macOS 14 or newer. Building from source needs Xcode 15 or newer. No Python, no other installs.
-- Roblox open **in a window** (not full screen), camera mode Classic, movement mode Keyboard, low
+- Roblox open, in a window or full screen (you choose in the Macro tab, under Roblox window), camera mode Classic, movement mode Keyboard, low
   graphics set by hand, performance stats and micro profiler off, camera not inverted, English.
   Display colour profile sRGB (the backpack colour reading expects it).
 - In the game: the Red Cannon and the Glider (Mountain Top Shop, the upgrade of the Parachute) if
@@ -61,7 +61,7 @@ shows the state). **Input Monitoring** is only needed if you want to record your
 
 ## Using it
 
-1. Open Roblox in a window and stand in your hive.
+1. Open Roblox and stand in your hive.
 2. **Calibrate** tab: press **Detect Roblox**.
 3. **Macro** tab: your hive colour, walk speed (no buffs), travel, sprinkler and hotbar.
 4. **Fields** tab: choose your hive slot and the fields. Press **Start**.
