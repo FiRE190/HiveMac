@@ -7,7 +7,7 @@
 
 ## 0.2.0 (unreleased): native Swift app
 
-- HiveMac is now a native Swift app (2 MB, about 30 MB of memory and 0% CPU idle, against about 156 MB and 1.4% for the Python app). The Python code stays in the repo.
+- HiveMac is now a native Swift app (2 MB, about 30 MB of memory and 0% CPU idle, against about 156 MB and 1.4% for the Python app). (The Python app that came before it has since been removed.)
 - Same farming loop, Natro routes and patterns, pixel checks, convert loop, sprinkler and stop key (any key you choose, applies live).
 - Run library: named runs, each with its own fields, minutes, backpack percent, return mode, travel, pattern and full per field options.
 - Run extras saved per run: bug runs (pick mobs), planters (field and type per slot), clock and dispensers. Each mob and pickup has its own respawn timer, kept across restarts. The macro does not run these steps yet.

@@ -17,7 +17,7 @@ keep its notice on them and do not share this repo until that is handled.
 Clock and dispensers, honeystorm, ant pass and robo pass: settings and timers are saved per run, the walking and E press are not built.
 Still to list: field boosters (45 min), daily honey leaderboard.
 
-## Port from the Python app
+## Hive profile
 - Hive profile: field colour hints are in (community wiki data, only fields with a clear colour). Honey or minutes estimates are NOT built: no reliable rates are known.
 
 ## Future idea (not scoped, maybe too much for now)

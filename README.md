@@ -34,15 +34,20 @@ how long to stay on each, and press Start.
 - **Phone remote.** Optional: open a link on your phone (same Wi-Fi) to start, pause and stop.
 - **Stop key.** One key (F9 by default) stops everything, even when Roblox is in front.
 
-## In the game you need
+## Requirements
 
-Roblox in a window, the Red Cannon and the Glider (Mountain Top Shop, the upgrade of the Parachute)
-if you use cannon travel, a sprinkler on your hotbar if you use one, and your hive slot (1 to 6)
-set in HiveMac. The Calibrate tab has a Detect Roblox button; press it with Roblox open.
+- macOS 14 or newer. Building from source needs Xcode 15 or newer. No Python, no other installs.
+- Roblox open **in a window** (not full screen), camera mode Classic, movement mode Keyboard, low
+  graphics set by hand, performance stats and micro profiler off, camera not inverted, English.
+  Display colour profile sRGB (the backpack colour reading expects it).
+- In the game: the Red Cannon and the Glider (Mountain Top Shop, the upgrade of the Parachute) if
+  you use cannon travel, and a sprinkler on your hotbar if you use one.
+- In HiveMac: your hive slot (1 to 6) and walk speed. The Calibrate tab has a Detect Roblox button;
+  press it with Roblox open.
 
 ## Install
 
-There is no download yet. Build it yourself (needs Xcode 15 or newer):
+There is no download yet. Build it yourself:
 
 ```sh
 git clone https://github.com/FiRE190/HiveMac.git

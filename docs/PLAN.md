@@ -1,6 +1,7 @@
 # Plan
 
-Written 2026-11-05. What is done, what is not proven, and what comes next, in order.
+Written 2026-11-05. The Python app mentioned below has since been removed; its numbers are kept as the
+baseline the Swift app was measured against. What is done, what is not proven, and what comes next, in order.
 
 ## Done
 
