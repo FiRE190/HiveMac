@@ -61,3 +61,20 @@ final class ProfileTests: XCTestCase {
         XCTAssertEqual(back.extras[1].harvestHours, 6)
     }
 }
+
+final class FieldColorsTests: XCTestCase {
+    func testBlueHiveLikesBlueFieldsAndSkipsKnownRedOnes() {
+        XCTAssertTrue(FieldColors.fits(field: "Bamboo", hive: "blue"))
+        XCTAssertFalse(FieldColors.fits(field: "rose", hive: "blue"))
+    }
+
+    func testMixedHiveAndUnknownFieldsAlwaysFit() {
+        XCTAssertTrue(FieldColors.fits(field: "rose", hive: "mixed"))
+        XCTAssertTrue(FieldColors.fits(field: "cactus", hive: "red"))
+    }
+
+    func testRecommendedFollowsGameOrder() {
+        XCTAssertEqual(FieldColors.recommended(for: "red"), ["mushroom", "strawberry", "rose", "pepper"])
+        XCTAssertTrue(FieldColors.recommended(for: "mixed").isEmpty)
+    }
+}

@@ -7,7 +7,13 @@ public struct MobTimers: Equatable, Sendable {
     public static let respawn: [String: TimeInterval] = [
         "ladybug": 330, "rhino beetle": 330, "spider": 1830, "mantis": 1230, "scorpion": 1230,
         "werewolf": 3630, "king beetle": 24 * 3600, "coconut crab": 36 * 3600,
+        // Timed pickups (Natro's cooldowns): same timer logic, not mobs.
+        "wealth clock": 3600, "honey dispenser": 3600, "treat dispenser": 3600,
+        "blueberry dispenser": 4 * 3600, "strawberry dispenser": 4 * 3600, "coconut dispenser": 4 * 3600,
+        "honeystorm": 4 * 3600, "ant pass": 2 * 3600, "robo pass": 22 * 3600,
     ]
+    public static let pickups = ["wealth clock", "honey dispenser", "treat dispenser", "blueberry dispenser",
+                                 "strawberry dispenser", "coconut dispenser", "honeystorm", "ant pass", "robo pass"]
 
     public private(set) var lastDone: [String: TimeInterval] = [:]
 

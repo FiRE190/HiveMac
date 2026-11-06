@@ -65,7 +65,7 @@ struct FieldsView: View {
                 Menu {
                     Menu("Field") {
                         ForEach(FieldDefaults.order, id: \.self) { name in
-                            Button(name.capitalized) {
+                            Button(name.capitalized + (!FieldColors.recommended(for: model.hive.color).isEmpty && FieldColors.table[name] == model.hive.color ? "  (fits your bees)" : "")) {
                                 var f = FieldConfig(name: name)
                                 f.backpackPercent = model.hive.backpackPercent
                                 model.profile.fields.append(f)
@@ -74,6 +74,7 @@ struct FieldsView: View {
                         }
                     }
                     Button("Bug run") { model.profile.extras.append(ExtraStep(kind: "bug_run")) }
+                    Button("Clock and dispensers") { model.profile.extras.append(ExtraStep(kind: "pickups")) }
                     Button("Planters") { model.profile.extras.append(ExtraStep(kind: "planters")) }
                 } label: { Text("Add") }
                 .menuStyle(.button).buttonStyle(QuietButtonStyle()).fixedSize()
@@ -180,7 +181,7 @@ struct ExtraRow: View {
     var remove: () -> Void
     @State private var open = true
 
-    private var title: String { step.kind == "planters" ? "Planters" : "Bug run" }
+    private var title: String { step.kind == "planters" ? "Planters" : step.kind == "pickups" ? "Clock and dispensers" : "Bug run" }
 
     var body: some View {
         VStack(alignment: .leading, spacing: Theme.s2) {
@@ -206,8 +207,8 @@ struct ExtraRow: View {
 
     private var bugRun: some View {
         VStack(alignment: .leading, spacing: Theme.s2) {
-            Text("A mob is only visited once its own timer has run out.").font(Theme.caption).foregroundStyle(Theme.dust)
-            ForEach(ExtraStep.bugs, id: \.self) { bug in
+            Text(step.kind == "pickups" ? "Each one is only collected once its own timer has run out." : "A mob is only visited once its own timer has run out.").font(Theme.caption).foregroundStyle(Theme.dust)
+            ForEach(step.kind == "pickups" ? MobTimers.pickups : ExtraStep.bugs, id: \.self) { bug in
                 HStack(spacing: Theme.s3) {
                     Toggle(bug.capitalized, isOn: Binding(
                         get: { step.bugs.contains(bug) },
@@ -220,7 +221,7 @@ struct ExtraRow: View {
                         .foregroundStyle(timed && left == 0 ? Theme.leaf : Theme.dust)
                     Spacer(minLength: 0)
                     if let wait = MobTimers.respawn[bug] {
-                        Text("respawns every " + (wait < 3600 ? "\(Int(wait / 60)) min" : "\(Int(wait / 3600)) h"))
+                        Text((step.kind == "pickups" ? "every " : "respawns every ") + (wait < 3600 ? "\(Int(wait / 60)) min" : "\(Int(wait / 3600)) h"))
                             .font(Theme.caption).foregroundStyle(Theme.dust)
                     }
                 }

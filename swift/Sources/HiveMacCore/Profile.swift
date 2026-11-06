@@ -39,9 +39,10 @@ public struct ExtraStep: Equatable, Identifiable, Sendable {
     public static let bugs = ["ladybug", "rhino beetle", "spider", "mantis", "scorpion", "werewolf",
                               "coconut crab", "king beetle", "black bear"]
     public var id = UUID()
-    public var kind: String                 // bug_run, planters
+    public var kind: String                 // bug_run, planters, pickups
     public var enabled = true
     public var everyMinutes = 30.0          // bug run: how often. planters: not used (see harvestHours)
+    /// The chosen names: mobs for a bug run, pickups (clock, dispensers) for pickups.
     public var bugs: [String] = ["ladybug", "rhino beetle"]
     public var planterFields: [String] = ["", "", ""]
     public var planterTypes: [String] = ["paper", "paper", "paper"]
@@ -50,7 +51,7 @@ public struct ExtraStep: Equatable, Identifiable, Sendable {
                                   "pesticide", "heat-treated", "hydroponic", "petal", "planter of plenty"]
     public var harvestHours = 4.0
 
-    public init(kind: String) { self.kind = kind }
+    public init(kind: String) { self.kind = kind; if kind == "pickups" { bugs = ["wealth clock", "honey dispenser"] } }
 
     public init(json d: [String: Any]) {
         self.init(kind: (d["kind"] as? String) ?? "bug_run")

@@ -14,11 +14,11 @@ keep its notice on them and do not share this repo until that is handled.
 - **Quests:** last, hard. Needs quest log recognition.
 
 ## Easy additions (a route, a timer, an E prompt check)
-Wealth clock (1 h), honey and treat dispensers (1 h), blueberry, strawberry and coconut dispensers (4 h),
-field boosters (45 min), honeystorm (4 h), ant pass (2 h), robo pass (22 h), daily honey leaderboard.
+Clock and dispensers, honeystorm, ant pass and robo pass: settings and timers are saved per run, the walking and E press are not built.
+Still to list: field boosters (45 min), daily honey leaderboard.
 
 ## Port from the Python app
-- Hive profile outputs: recommended fields per colour and an estimate per field (labelled estimate).
+- Hive profile: field colour hints are in (community wiki data, only fields with a clear colour). Honey or minutes estimates are NOT built: no reliable rates are known.
 
 ## Future idea (not scoped, maybe too much for now)
 A very simple website with just sign in and sign up, where you press Start and a few other basics to

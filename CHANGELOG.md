@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.2.0 (unreleased): native Swift app
+
+- HiveMac is now a native Swift app (2 MB, about 30 MB of memory and 0% CPU idle, against about 156 MB and 1.4% for the Python app). The Python code stays in the repo.
+- Same farming loop, Natro routes and patterns, pixel checks, convert loop, sprinkler and stop key (any key you choose, applies live).
+- Run library: named runs, each with its own fields, minutes, backpack percent, return mode, travel, pattern and full per field options.
+- Run extras saved per run: bug runs (pick mobs), planters (field and type per slot), clock and dispensers. Each mob and pickup has its own respawn timer, kept across restarts. The macro does not run these steps yet.
+- App settings behind the gear: permissions, stop key, phone remote, updates, data folder. Update check against GitHub releases.
+- Phone remote page (off by default, token link), watchdog, calibration tools (record a walk, capture pictures), field colour hints for your hive.
+- 70 Swift tests, Swift CI job.
+
 ## 0.1.0 (unreleased)
 
 - Return to the hive now defaults to walking, like Natro (all 17 walk back routes converted; the

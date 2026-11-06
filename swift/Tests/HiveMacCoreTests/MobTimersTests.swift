@@ -39,3 +39,22 @@ final class MobTimersTests: XCTestCase {
         XCTAssertEqual(MobTimers.describe(remaining: 0, timed: false), "no timer")
     }
 }
+
+final class PickupTimersTests: XCTestCase {
+    func testPickupsUseTheSameTimerLogic() {
+        var t = MobTimers()
+        t.markDone("wealth clock", at: 0)
+        XCTAssertFalse(t.isReady("wealth clock", now: 3599))
+        XCTAssertTrue(t.isReady("wealth clock", now: 3600))
+        XCTAssertTrue(MobTimers.pickups.allSatisfy { MobTimers.respawn[$0] != nil })
+    }
+
+    func testPickupStepKeepsItsChoicesOnSave() throws {
+        var s = ExtraStep(kind: "pickups"); s.bugs = ["ant pass"]
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent("pk-\(UUID().uuidString).json")
+        defer { try? FileManager.default.removeItem(at: url) }
+        try Profile(name: "t", extras: [s]).save(to: url)
+        XCTAssertEqual(try Profile.load(url).extras.first?.kind, "pickups")
+        XCTAssertEqual(try Profile.load(url).extras.first?.bugs, ["ant pass"])
+    }
+}
