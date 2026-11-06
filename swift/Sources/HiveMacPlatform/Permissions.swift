@@ -8,6 +8,7 @@ import AppKit
 public struct PermissionStatus: Equatable {
     public var screenRecording: Bool
     public var accessibility: Bool
+    public init(screenRecording: Bool, accessibility: Bool) { self.screenRecording = screenRecording; self.accessibility = accessibility }
     public var allGranted: Bool { screenRecording && accessibility }
 
     /// Plain reasons for what is missing, empty when everything is granted.

@@ -8,6 +8,7 @@ public struct LoopStats: Equatable, Sendable {
     public var failedResets = 0
     public var lastResult = ""
     public var history: [GatherResult] = []
+    public init() {}
 }
 
 /// The farming loop: reset to the hive, convert, travel, gather, walk back (or reset), repeat,

@@ -85,6 +85,9 @@ public struct GatherResult: Equatable, Sendable {
     public var reason: String       // backpack, time, death, lost, stopped
     public var seconds: Double = 0
     public var backpack: Int = 0
+    public init(reason: String, seconds: Double = 0, backpack: Int = 0) {
+        self.reason = reason; self.seconds = seconds; self.backpack = backpack
+    }
 }
 
 public typealias PathLookup = (_ kind: String, _ field: String, _ variant: String) -> PathFile?
