@@ -10,6 +10,11 @@ how long to stay on each, and press Start.
 > **Beta.** It builds, passes its tests and runs against a simulated game, but it has had very
 > little time in the real game. Expect rough edges. Bug reports are welcome.
 
+<p align="center">
+  <img src="docs/images/shot-fields.png" width="360" alt="Fields tab">
+  <img src="docs/images/shot-macro.png" width="360" alt="Macro tab">
+</p>
+
 ## Good to know first
 
 - **Uses Natro Macro's open source route files.** The walks from the hive to every field (and back)
