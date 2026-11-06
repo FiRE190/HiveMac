@@ -3,16 +3,41 @@ import HiveMacCore
 
 struct FieldsView: View {
     @EnvironmentObject var model: AppModel
+    @State private var renaming = false
+    @State private var nameDraft = ""
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack(spacing: Theme.s2) {
+                Text("Run").font(Theme.caption).foregroundStyle(Theme.dust)
+                Picker("", selection: Binding(get: { model.activeRunFile }, set: { model.switchRun($0) })) {
+                    ForEach(model.runs) { Text($0.name).tag($0.file) }
+                }.labelsHidden().frame(width: 180).disabled(model.running)
+                Menu {
+                    Button("New run") { model.addRun(named: nextName(), copying: nil); begin() }
+                    Button("Duplicate this run") { model.addRun(named: model.profile.name + " copy", copying: model.profile); begin() }
+                    Button("Rename") { begin() }
+                    Divider()
+                    Button("Delete this run") { model.deleteRun() }.disabled(!model.canDeleteRun)
+                } label: { Text("Manage") }
+                .menuStyle(.button).buttonStyle(QuietButtonStyle()).fixedSize().disabled(model.running)
+                Spacer()
+            }
+            .padding(.horizontal, Theme.s6).padding(.top, Theme.s4)
+            .alert("Name this run", isPresented: $renaming) {
+                TextField("Name", text: $nameDraft)
+                Button("Save") { model.renameRun(nameDraft) }
+                Button("Cancel", role: .cancel) {}
+            }
+
+            HStack(spacing: Theme.s2) {
                 Text("").frame(width: 24)
-                Text("Field").frame(width: 130, alignment: .leading)
-                Text("Minutes").frame(width: 64, alignment: .trailing)
-                Text("Backpack %").frame(width: 84, alignment: .trailing)
-                Text("Back to hive").frame(width: 92, alignment: .leading)
-                Text("Travel").frame(width: 80, alignment: .leading)
+                Text("Field").frame(width: 100, alignment: .leading)
+                Text("Minutes").frame(width: 56, alignment: .trailing)
+                Text("Pack %").frame(width: 56, alignment: .trailing)
+                Text("Return").frame(width: 76, alignment: .leading)
+                Text("Travel").frame(width: 72, alignment: .leading)
+                Text("Pattern").frame(width: 124, alignment: .leading)
             }
             .font(Theme.caption).foregroundStyle(Theme.dust)
             .padding(.horizontal, Theme.s6).padding(.top, Theme.s4).padding(.bottom, Theme.s1)
@@ -50,6 +75,11 @@ struct FieldsView: View {
     }
 }
 
+extension FieldsView {
+    func begin() { nameDraft = model.profile.name; renaming = true }
+    func nextName() -> String { "Run \(model.runs.count + 1)" }
+}
+
 struct FieldRow: View {
     @Binding var field: FieldConfig
     var remove: () -> Void
@@ -58,15 +88,18 @@ struct FieldRow: View {
         HStack(spacing: Theme.s2) {
             Toggle("", isOn: $field.enabled).toggleStyle(.checkbox).labelsHidden().frame(width: 24)
             Text(field.name.capitalized).font(Theme.body)
-                .foregroundStyle(field.enabled ? Theme.wax : Theme.dust).frame(width: 130, alignment: .leading)
-            TextField("", value: $field.minutes, format: .number).fieldStyle(width: 64)
-            TextField("", value: $field.backpackPercent, format: .number).fieldStyle(width: 84)
+                .foregroundStyle(field.enabled ? Theme.wax : Theme.dust).frame(width: 100, alignment: .leading)
+            TextField("", value: $field.minutes, format: .number).fieldStyle(width: 56)
+            TextField("", value: $field.backpackPercent, format: .number).fieldStyle(width: 56)
             Picker("", selection: $field.returnMethod) {
                 Text("Walk").tag("walk"); Text("Reset").tag("reset")
-            }.labelsHidden().frame(width: 92)
+            }.labelsHidden().frame(width: 76)
             Picker("", selection: $field.travel) {
                 Text("Default").tag("default"); Text("Walk").tag("walk"); Text("Cannon").tag("cannon")
-            }.labelsHidden().frame(width: 80)
+            }.labelsHidden().frame(width: 72)
+            Picker("", selection: $field.pattern) {
+                ForEach(Patterns.names, id: \.self) { Text($0.replacingOccurrences(of: "_", with: " ").capitalized).tag($0) }
+            }.labelsHidden().frame(width: 124)
             Spacer(minLength: 0)
             Button(action: remove) { Image(systemName: "minus.circle") }
                 .buttonStyle(.plain).foregroundStyle(Theme.dust).help("Remove this field")

@@ -62,6 +62,8 @@ final class AppModel: ObservableObject {
     @Published var permissions = Permissions.current()
     @Published var live = LiveReadings()
     @Published var profile = Profile()
+    @Published var runs: [RunEntry] = []
+    @Published var activeRunFile = "default_profile.json"
     @Published var hive = HiveProfile()
     @Published var stopKeyName = "f9"
     @Published var stopKeyMessage: String?
@@ -88,8 +90,11 @@ final class AppModel: ObservableObject {
         builtInPaths = AppModel.findBuiltInPaths()
         let defaults = AppModel.findDefaultConfig()
         store = (try? ConfigStore(defaultsURL: defaults, url: dirs.settings)) ?? ConfigStore(defaults: [:], url: dirs.settings)
-        profile = (try? Profile.load(dirs.profiles.appendingPathComponent("default_profile.json"))) ?? Profile()
+        activeRunFile = store.string("app.active_run_file", "default_profile.json")
+        if !FileManager.default.fileExists(atPath: dirs.profiles.appendingPathComponent(activeRunFile).path) { activeRunFile = "default_profile.json" }
+        profile = (try? Profile.load(dirs.profiles.appendingPathComponent(activeRunFile))) ?? Profile()
         hive = HiveProfile(store: store)
+        refreshRuns()
         logFile = AppModel.openLog(dirs.logs.appendingPathComponent("hivemac.log"))
         stopKeyName = store.string("app.emergency_stop_key", "f9")
         hotKey.onPress = { [weak self] in self?.stop() }
@@ -113,7 +118,8 @@ final class AppModel: ObservableObject {
         var f2 = FieldConfig(name: "pine tree"); f2.minutes = 12; f2.backpackPercent = 90
         var f3 = FieldConfig(name: "bamboo"); f3.returnMethod = "reset"
         var f4 = FieldConfig(name: "stump"); f4.enabled = false
-        profile = Profile(name: "demo", fields: [FieldConfig(name: "sunflower"), f2, f3, f4])
+        runs = [RunEntry(file: "demo.json", name: "Strawberry grinder"), RunEntry(file: "d2.json", name: "Clover fast")]; activeRunFile = "demo.json"
+        profile = Profile(name: "Strawberry grinder", fields: [FieldConfig(name: "sunflower"), f2, f3, f4])
         hive.color = "blue"; hive.cubBuddy = true
         ["Resetting: attempt 1", "Converting: done", "Traveling: sunflower", "Gathering: sunflower corner_x_snake m w4 until 95% or 10 min",
          "Traveling: hive", "Converting: done"].forEach(append)
@@ -256,7 +262,58 @@ final class AppModel: ObservableObject {
 
     // MARK: Profile and settings
     func saveProfile() {
-        try? profile.save(to: dirs.profiles.appendingPathComponent("default_profile.json"))
+        try? profile.save(to: dirs.profiles.appendingPathComponent(activeRunFile))
+        refreshRuns()
+    }
+
+    // MARK: Run library (each run is one profile file)
+    struct RunEntry: Identifiable, Equatable { let file: String; let name: String; var id: String { file } }
+
+    func refreshRuns() {
+        let files = (try? FileManager.default.contentsOfDirectory(atPath: dirs.profiles.path)) ?? []
+        runs = files.filter { $0.hasSuffix(".json") }.sorted().compactMap { f in
+            (try? Profile.load(dirs.profiles.appendingPathComponent(f))).map { RunEntry(file: f, name: $0.name) }
+        }
+    }
+
+    func switchRun(_ file: String) {
+        guard !running, file != activeRunFile,
+              let p = try? Profile.load(dirs.profiles.appendingPathComponent(file)) else { return }
+        activeRunFile = file; profile = p
+        set("app.active_run_file", file)
+    }
+
+    private func newRunFile(_ name: String) -> String {
+        let slug = String(name.lowercased().map { $0.isLetter || $0.isNumber ? $0 : "_" })
+        var f = "\(slug).json", n = 2
+        while FileManager.default.fileExists(atPath: dirs.profiles.appendingPathComponent(f).path) { f = "\(slug)_\(n).json"; n += 1 }
+        return f
+    }
+
+    /// Creates a run from `base` (a copy of the current one, or nothing for a fresh one) and opens it.
+    func addRun(named name: String, copying base: Profile?) {
+        guard !running else { return }
+        var p = base ?? Profile(fields: [FieldConfig(name: "sunflower")])
+        p.name = name
+        let f = newRunFile(name)
+        try? p.save(to: dirs.profiles.appendingPathComponent(f))
+        refreshRuns(); switchRun(f)
+    }
+
+    func renameRun(_ name: String) {
+        let t = name.trimmingCharacters(in: .whitespaces)
+        guard !t.isEmpty else { return }
+        profile.name = t
+    }
+
+    var canDeleteRun: Bool { runs.count > 1 && !running }
+
+    func deleteRun() {
+        guard canDeleteRun else { return }
+        let gone = activeRunFile
+        try? FileManager.default.removeItem(at: dirs.profiles.appendingPathComponent(gone))
+        refreshRuns()
+        if let next = runs.first?.file { activeRunFile = ""; switchRun(next) }
     }
 
     func saveSettings() {
