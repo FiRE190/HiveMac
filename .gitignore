@@ -16,3 +16,6 @@ profiles/*.json
 !profiles/default_profile.json
 .claude/
 Icon
+
+swift/.build/
+swift/.swiftpm/
