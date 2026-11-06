@@ -9,10 +9,9 @@ struct FieldsView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack(spacing: Theme.s2) {
-                Text("Run").font(Theme.caption).foregroundStyle(Theme.dust)
-                Picker("", selection: Binding(get: { model.activeRunFile }, set: { model.switchRun($0) })) {
-                    ForEach(model.runs) { Text($0.name).tag($0.file) }
-                }.labelsHidden().frame(width: 180).disabled(model.running)
+                Choice(options: model.runs.map { ($0.file, $0.name) },
+                       selection: Binding(get: { model.activeRunFile }, set: { model.switchRun($0) }), width: 200)
+                    .disabled(model.running)
                 Menu {
                     Button("New run") { model.addRun(named: nextName(), copying: nil); begin() }
                     Button("Duplicate this run") { model.addRun(named: model.profile.name + " copy", copying: model.profile); begin() }
@@ -31,13 +30,13 @@ struct FieldsView: View {
             }
 
             HStack(spacing: Theme.s2) {
-                Text("").frame(width: 24)
+                Color.clear.frame(width: 24, height: 1)
                 Text("Field").frame(width: 100, alignment: .leading)
-                Text("Minutes").frame(width: 56, alignment: .trailing)
-                Text("Pack %").frame(width: 56, alignment: .trailing)
+                Text("Minutes").frame(width: 56, alignment: .leading)
+                Text("Pack %").frame(width: 56, alignment: .leading)
                 Text("Return").frame(width: 76, alignment: .leading)
-                Text("Travel").frame(width: 72, alignment: .leading)
-                Text("Pattern").frame(width: 124, alignment: .leading)
+                Text("Travel").frame(width: 88, alignment: .leading)
+                Text("Pattern").frame(width: 132, alignment: .leading)
             }
             .font(Theme.caption).foregroundStyle(Theme.dust)
             .padding(.horizontal, Theme.s6).padding(.top, Theme.s4).padding(.bottom, Theme.s1)
@@ -109,15 +108,9 @@ struct FieldRow: View {
                 .buttonStyle(.plain).help("Show every option for this field")
                 TextField("", value: $field.minutes, format: .number).fieldStyle(width: 56)
                 TextField("", value: $field.backpackPercent, format: .number).fieldStyle(width: 56)
-                Picker("", selection: $field.returnMethod) {
-                    Text("Walk").tag("walk"); Text("Reset").tag("reset")
-                }.labelsHidden().frame(width: 76)
-                Picker("", selection: $field.travel) {
-                    Text("Default").tag("default"); Text("Walk").tag("walk"); Text("Cannon").tag("cannon")
-                }.labelsHidden().frame(width: 72)
-                Picker("", selection: $field.pattern) {
-                    ForEach(Patterns.names, id: \.self) { Text(Self.pretty($0)).tag($0) }
-                }.labelsHidden().frame(width: 124)
+                Choice(options: [("walk", "Walk"), ("reset", "Reset")], selection: $field.returnMethod, width: 76)
+                Choice(options: [("default", "Default"), ("walk", "Walk"), ("cannon", "Cannon")], selection: $field.travel, width: 88)
+                Choice(options: Patterns.names.map { ($0, Self.pretty($0)) }, selection: $field.pattern, width: 132)
                 Spacer(minLength: 0)
                 Button(action: remove) { Image(systemName: "minus.circle") }
                     .buttonStyle(.plain).foregroundStyle(Theme.dust).help("Remove this field")
@@ -134,23 +127,19 @@ struct FieldRow: View {
         Grid(alignment: .leading, horizontalSpacing: Theme.s3, verticalSpacing: Theme.s2) {
             GridRow {
                 label("Size")
-                Picker("", selection: $field.size) { ForEach(["xs", "s", "m", "l", "xl"], id: \.self) { Text($0.uppercased()).tag($0) } }
-                    .labelsHidden().frame(width: 76)
+                Choice(options: ["xs", "s", "m", "l", "xl"].map { ($0, $0.uppercased()) }, selection: $field.size, width: 76)
                 label("Width")
                 TextField("", value: $field.width, format: .number).fieldStyle(width: 56)
             }
             GridRow {
                 label("Camera")
-                Picker("", selection: $field.camera) { Text("None").tag("none"); Text("Left").tag("left"); Text("Right").tag("right") }
-                    .labelsHidden().frame(width: 76)
+                Choice(options: [("none", "None"), ("left", "Left"), ("right", "Right")], selection: $field.camera, width: 76)
                 label("Turns")
                 TextField("", value: $field.turns, format: .number).fieldStyle(width: 56)
             }
             GridRow {
                 label("Sprinkler")
-                Picker("", selection: $field.sprinklerLocation) {
-                    ForEach(Self.locations, id: \.self) { Text($0.capitalized).tag($0) }
-                }.labelsHidden().frame(width: 110)
+                Choice(options: Self.locations.map { ($0, $0.capitalized) }, selection: $field.sprinklerLocation, width: 110)
                 label("Distance")
                 TextField("", value: $field.sprinklerDistance, format: .number).fieldStyle(width: 56)
             }

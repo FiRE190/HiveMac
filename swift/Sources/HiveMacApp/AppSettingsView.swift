@@ -24,14 +24,13 @@ struct AppSettingsView: View {
                                   why: "Lets HiveMac read the backpack and health bars.", pane: .screenRecording)
                     PermissionRow(title: "Accessibility", ok: model.permissions.accessibility,
                                   why: "Lets HiveMac press keys.", pane: .accessibility)
-                    HStack(spacing: Theme.s2) {
-                        if !model.permissions.allGranted { Button("Ask macOS") { model.requestPermissions() }.buttonStyle(QuietButtonStyle()) }
+                    HStack(spacing: Theme.s3) {
                         Button("Check again") { model.refreshPermissions() }.buttonStyle(QuietButtonStyle())
+                        Text("After turning one on, quit and reopen HiveMac.").font(Theme.caption).foregroundStyle(Theme.dust)
                     }.padding(.top, Theme.s2)
-                    Text("After turning something on, quit and reopen HiveMac.").font(Theme.caption).foregroundStyle(Theme.dust).padding(.top, Theme.s1)
 
                     SectionTitle("Stop key")
-                    SettingRow(label: "Stop everything", hint: "Works in any app. On some keyboards F keys need Fn held.") { StopKeyField() }
+                    SettingRow(label: "Stop everything") { StopKeyField() }
                     if let msg = model.stopKeyMessage {
                         Text(msg).font(Theme.caption).foregroundStyle(Theme.ember)
                     }
@@ -49,5 +48,6 @@ struct AppSettingsView: View {
         }
         .frame(width: 520, height: 560)
         .background(Theme.shed)
+        .tint(Theme.honey)
     }
 }

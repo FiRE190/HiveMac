@@ -8,17 +8,10 @@ struct CalibrateView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
-                SectionTitle("Permissions")
-                PermissionRow(title: "Screen Recording", ok: model.permissions.screenRecording,
-                              why: "Lets HiveMac read the backpack and health bars.", pane: .screenRecording)
-                PermissionRow(title: "Accessibility", ok: model.permissions.accessibility,
-                              why: "Lets HiveMac press keys. Without it macOS silently drops every key.", pane: .accessibility)
-                HStack(spacing: Theme.s2) {
-                    if !model.permissions.allGranted { Button("Ask macOS") { model.requestPermissions() }.buttonStyle(QuietButtonStyle()) }
-                    Button("Check again") { model.refreshPermissions() }.buttonStyle(QuietButtonStyle())
+                if !model.permissions.allGranted {
+                    Text("Screen Recording or Accessibility is off. Turn them on with the gear at the top right.")
+                        .font(Theme.caption).foregroundStyle(Theme.ember).padding(.top, Theme.s4)
                 }
-                .padding(.top, Theme.s2)
-                Text("After turning something on, quit and reopen HiveMac.").font(Theme.caption).foregroundStyle(Theme.dust).padding(.top, Theme.s1)
 
                 SectionTitle("Roblox")
                 HStack(spacing: Theme.s3) {
@@ -73,7 +66,7 @@ struct PermissionRow: View {
                 Text(ok ? "On" : why).font(Theme.caption).foregroundStyle(ok ? Theme.dust : Theme.resin).fixedSize(horizontal: false, vertical: true)
             }
             Spacer()
-            if !ok { Button("Open System Settings") { Permissions.openSettings(pane) }.buttonStyle(QuietButtonStyle()) }
+            if !ok { Button("Open") { Permissions.openSettings(pane) }.buttonStyle(QuietButtonStyle()) }
         }
         .frame(minHeight: Theme.rowHeight + 8)
     }

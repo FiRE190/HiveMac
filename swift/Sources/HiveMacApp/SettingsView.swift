@@ -2,6 +2,7 @@ import SwiftUI
 import AppKit
 import HiveMacCore
 
+/// The macro's own settings. App settings (permissions, stop key, updates) are behind the gear.
 struct SettingsView: View {
     @EnvironmentObject var model: AppModel
 
@@ -19,36 +20,33 @@ struct SettingsView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
                 SectionTitle("Hive")
-                SettingRow(label: "Hive color", hint: "Sets which fields match your bees.") {
-                    Picker("", selection: $model.hive.color) {
-                        Text("Blue").tag("blue"); Text("Red").tag("red"); Text("White").tag("white"); Text("Mixed").tag("mixed")
-                    }.labelsHidden().frame(width: 110)
+                SettingRow(label: "Hive color") {
+                    Choice(options: [("blue", "Blue"), ("red", "Red"), ("white", "White"), ("mixed", "Mixed")],
+                           selection: $model.hive.color, width: 120)
                 }
                 SettingRow(label: "Bees") { TextField("", value: $model.hive.beeCount, format: .number).fieldStyle(width: 64) }
                 SettingRow(label: "Average bee level") { TextField("", value: $model.hive.avgBeeLevel, format: .number).fieldStyle(width: 64) }
-                SettingRow(label: "Cub Buddy", hint: "The bear that picks up tokens for you.") { Toggle("I have it", isOn: $model.hive.cubBuddy).toggleStyle(.checkbox) }
-                SettingRow(label: "Backpack percent", hint: "Default for new fields.") { TextField("", value: $model.hive.backpackPercent, format: .number).fieldStyle(width: 64) }
-                SettingRow(label: "Hive slot", hint: "Counted from the ramp.") {
-                    Picker("", selection: int("game.hive_slot", 1)) { ForEach(1...6, id: \.self) { Text("\($0)").tag($0) } }.labelsHidden().frame(width: 70)
+                SettingRow(label: "Cub Buddy") { Toggle("Have it", isOn: $model.hive.cubBuddy).toggleStyle(.checkbox) }
+                SettingRow(label: "Backpack percent") { TextField("", value: $model.hive.backpackPercent, format: .number).fieldStyle(width: 64) }
+                SettingRow(label: "Hive slot") {
+                    Choice(options: (1...6).map { ($0, "\($0)") }, selection: int("game.hive_slot", 1), width: 64)
                 }
 
                 SectionTitle("Walking")
-                SettingRow(label: "Walk speed", hint: "From the in-game settings panel. Natro's default is 28.") {
-                    TextField("", value: num("game.walk_speed", 28), format: .number).fieldStyle(width: 64)
-                }
+                SettingRow(label: "Walk speed") { TextField("", value: num("game.walk_speed", 28), format: .number).fieldStyle(width: 64) }
                 SettingRow(label: "Default travel") {
-                    Picker("", selection: str("game.travel", "walk")) { Text("Walk").tag("walk"); Text("Cannon").tag("cannon") }.labelsHidden().frame(width: 110)
+                    Choice(options: [("walk", "Walk"), ("cannon", "Cannon")], selection: str("game.travel", "walk"), width: 120)
                 }
-                SettingRow(label: "Roblox window", hint: "Windowed is the simple one. Keep its size fixed.") {
-                    Picker("", selection: str("game.window_mode", "windowed")) { Text("Windowed").tag("windowed"); Text("Full screen").tag("fullscreen") }.labelsHidden().frame(width: 130)
+                SettingRow(label: "Roblox window") {
+                    Choice(options: [("windowed", "Windowed"), ("fullscreen", "Full screen")], selection: str("game.window_mode", "windowed"), width: 120)
                 }
-                SettingRow(label: "Sprinkler") {
-                    Picker("", selection: str("game.sprinkler_type", "none")) {
-                        ForEach(Sprinkler.types, id: \.self) { Text($0.capitalized).tag($0) }
-                    }.labelsHidden().frame(width: 110)
+
+                SectionTitle("Sprinkler")
+                SettingRow(label: "Type") {
+                    Choice(options: Sprinkler.types.map { ($0, $0.capitalized) }, selection: str("game.sprinkler_type", "none"), width: 120)
                 }
-                SettingRow(label: "Sprinkler hotbar key") {
-                    Picker("", selection: str("game.sprinkler_slot_key", "1")) { ForEach(1...7, id: \.self) { Text("\($0)").tag("\($0)") } }.labelsHidden().frame(width: 70)
+                SettingRow(label: "Hotbar key") {
+                    Choice(options: (1...7).map { ("\($0)", "\($0)") }, selection: str("game.sprinkler_slot_key", "1"), width: 64)
                 }
             }
             .padding(.horizontal, Theme.s6).padding(.bottom, Theme.s6)

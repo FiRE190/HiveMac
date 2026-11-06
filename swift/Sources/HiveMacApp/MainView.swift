@@ -14,16 +14,13 @@ struct MainView: View {
         VStack(spacing: 0) {
             HeaderView()
             Divider().overlay(Theme.grain)
-            HStack(alignment: .center, spacing: Theme.s6) {
-                HoneyGauge(percent: model.backpack, active: model.running && !model.paused)
-                VStack(alignment: .leading, spacing: Theme.s2) {
-                    CountersView()
-                    if !model.detail.isEmpty && model.state != .idle {
-                        Text(model.detail).font(Theme.caption).foregroundStyle(model.state == .error ? Theme.ember : Theme.resin)
-                            .lineLimit(2).fixedSize(horizontal: false, vertical: true)
-                    }
+            VStack(alignment: .leading, spacing: Theme.s3) {
+                BackpackBar(percent: model.backpack, active: model.running && !model.paused)
+                CountersView()
+                if !model.detail.isEmpty && model.state != .idle {
+                    Text(model.detail).font(Theme.caption).foregroundStyle(model.state == .error ? Theme.ember : Theme.resin)
+                        .lineLimit(2).fixedSize(horizontal: false, vertical: true)
                 }
-                Spacer(minLength: 0)
             }
             .padding(.horizontal, Theme.s6).padding(.vertical, Theme.s4)
             ControlsView().padding(.horizontal, Theme.s6).padding(.bottom, Theme.s4)
@@ -41,6 +38,7 @@ struct MainView: View {
             .background(Theme.bench)
         }
         .background(Theme.shed)
+        .tint(Theme.honey)
         .onAppear {
             model.refreshLive()
             if !model.live.calibrated && ProcessInfo.processInfo.environment["HIVEMAC_TAB"] == nil { tab = .calibrate }
@@ -87,19 +85,42 @@ struct HeaderView: View {
     }
 }
 
+struct BackpackBar: View {
+    var percent: Int?
+    var active: Bool
+    var body: some View {
+        VStack(alignment: .leading, spacing: Theme.s2) {
+            HStack(alignment: .firstTextBaseline) {
+                Text("Backpack").font(Theme.body).foregroundStyle(Theme.resin)
+                Spacer()
+                Text(percent.map { "\($0)%" } ?? "n/a").font(Theme.figure).foregroundStyle(Theme.wax)
+            }
+            GeometryReader { g in
+                ZStack(alignment: .leading) {
+                    Capsule().fill(Theme.plank)
+                    Capsule().fill(active ? Theme.honey : Theme.dust)
+                        .frame(width: g.size.width * CGFloat(min(100, max(0, percent ?? 0))) / 100)
+                }
+            }
+            .frame(height: 8)
+        }
+    }
+}
+
 struct CountersView: View {
     @EnvironmentObject var model: AppModel
     var body: some View {
-        Grid(alignment: .leading, horizontalSpacing: Theme.s6, verticalSpacing: Theme.s2) {
-            row("Field", model.currentField.isEmpty ? "none" : model.currentField.capitalized)
-            row("Cycles", "\(model.stats.cycles)")
-            row("Converts", "\(model.stats.converts)")
-            row("Deaths", "\(model.stats.deaths)")
+        HStack(alignment: .top, spacing: Theme.s6) {
+            stat("Field", model.currentField.isEmpty ? "None" : model.currentField.capitalized)
+            stat("Cycles", "\(model.stats.cycles)")
+            stat("Converts", "\(model.stats.converts)")
+            stat("Deaths", "\(model.stats.deaths)")
+            Spacer(minLength: 0)
         }
     }
-    private func row(_ label: String, _ value: String) -> some View {
-        GridRow {
-            Text(label).font(Theme.body).foregroundStyle(Theme.resin)
+    private func stat(_ label: String, _ value: String) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(label).font(Theme.caption).foregroundStyle(Theme.dust)
             Text(value).font(Theme.figure).foregroundStyle(Theme.wax)
         }
     }
