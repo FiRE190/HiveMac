@@ -50,6 +50,8 @@ public struct ExtraStep: Equatable, Identifiable, Sendable {
     public static let planters = ["paper", "ticking", "plastic", "candy", "red clay", "blue clay", "tacky",
                                   "pesticide", "heat-treated", "hydroponic", "petal", "planter of plenty"]
     public var harvestHours = 4.0
+    /// Where it sits in the run: the number of fields before it. Large = after every field.
+    public var after = Int.max
 
     public init(kind: String) { self.kind = kind; if kind == "pickups" { bugs = ["wealth clock", "honey dispenser"] } }
 
@@ -61,11 +63,13 @@ public struct ExtraStep: Equatable, Identifiable, Sendable {
         if let v = d["planter_fields"] as? [String] { planterFields = (v + ["", "", ""]).prefix(3).map { $0 } }
         if let v = d["planter_types"] as? [String] { planterTypes = (v + ["paper", "paper", "paper"]).prefix(3).map { $0 } }
         if let v = (d["harvest_hours"] as? NSNumber)?.doubleValue { harvestHours = v }
+        if let v = (d["after"] as? NSNumber)?.intValue { after = v }
     }
 
     public var json: [String: Any] {
         ["kind": kind, "enabled": enabled, "every_minutes": everyMinutes, "bugs": bugs,
-         "planter_fields": planterFields, "planter_types": planterTypes, "harvest_hours": harvestHours]
+         "planter_fields": planterFields, "planter_types": planterTypes, "harvest_hours": harvestHours,
+         "after": min(after, 1000)]
     }
 }
 
@@ -78,6 +82,32 @@ public struct Profile: Equatable {
 
     public init(name: String = "default", fields: [FieldConfig] = [FieldConfig(name: "sunflower")], notes: String = "", extras: [ExtraStep] = []) {
         self.name = name; self.fields = fields; self.notes = notes; self.extras = extras
+    }
+
+    /// Every row in run order. Keys: `f:<field>` and `e:<uuid>`.
+    public var orderKeys: [String] {
+        var out: [String] = []
+        for i in 0...fields.count {
+            for e in extras where min(e.after, fields.count) == i { out.append("e:" + e.id.uuidString) }
+            if i < fields.count { out.append("f:" + fields[i].name) }
+        }
+        return out
+    }
+
+    /// Moves one row so it sits just before `target` (or at the end when `target` is nil).
+    public mutating func move(_ key: String, before target: String?) {
+        var keys = orderKeys
+        guard key != target, let from = keys.firstIndex(of: key) else { return }
+        keys.remove(at: from)
+        if let t = target, let to = keys.firstIndex(of: t) { keys.insert(key, at: to) } else { keys.append(key) }
+        var newFields: [FieldConfig] = [], newExtras: [ExtraStep] = []
+        for k in keys {
+            if k.hasPrefix("f:"), let f = fields.first(where: { "f:" + $0.name == k }) { newFields.append(f) }
+            else if k.hasPrefix("e:"), var e = extras.first(where: { "e:" + $0.id.uuidString == k }) {
+                e.after = newFields.count; newExtras.append(e)
+            }
+        }
+        fields = newFields; extras = newExtras
     }
 
     public static func load(_ url: URL) throws -> Profile {

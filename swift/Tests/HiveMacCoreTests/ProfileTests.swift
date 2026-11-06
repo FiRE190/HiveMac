@@ -78,3 +78,17 @@ final class FieldColorsTests: XCTestCase {
         XCTAssertTrue(FieldColors.recommended(for: "mixed").isEmpty)
     }
 }
+
+final class RunOrderTests: XCTestCase {
+    func testExtrasMoveBetweenFields() {
+        var p = Profile(fields: [FieldConfig(name: "sunflower"), FieldConfig(name: "pine tree"), FieldConfig(name: "rose")],
+                        extras: [ExtraStep(kind: "bug_run")])
+        let bug = "e:" + p.extras[0].id.uuidString
+        XCTAssertEqual(p.orderKeys.last, bug)               // default: after every field
+        p.move(bug, before: "f:pine tree")
+        XCTAssertEqual(p.orderKeys, ["f:sunflower", bug, "f:pine tree", "f:rose"])
+        p.move("f:rose", before: "f:sunflower")
+        XCTAssertEqual(p.fields.map(\.name), ["rose", "sunflower", "pine tree"])
+        XCTAssertEqual(p.orderKeys, ["f:rose", "f:sunflower", bug, "f:pine tree"])
+    }
+}

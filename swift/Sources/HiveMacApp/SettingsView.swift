@@ -28,9 +28,6 @@ struct SettingsView: View {
                 SettingRow(label: "Average bee level") { TextField("", value: $model.hive.avgBeeLevel, format: .number).fieldStyle(width: 64) }
                 SettingRow(label: "Cub Buddy") { Toggle("Have it", isOn: $model.hive.cubBuddy).toggleStyle(.checkbox) }
                 SettingRow(label: "Backpack percent") { TextField("", value: $model.hive.backpackPercent, format: .number).fieldStyle(width: 64) }
-                SettingRow(label: "Hive slot") {
-                    Choice(options: (1...6).map { ($0, "\($0)") }, selection: int("game.hive_slot", 1), width: 64)
-                }
 
                 SectionTitle("Walking")
                 SettingRow(label: "Walk speed") { TextField("", value: num("game.walk_speed", 28), format: .number).fieldStyle(width: 64) }

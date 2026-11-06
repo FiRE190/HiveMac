@@ -29,8 +29,12 @@ struct FieldsView: View {
                 Button("Cancel", role: .cancel) {}
             }
 
-            HiveSlotPicker()
-                .padding(.horizontal, Theme.s6).padding(.top, Theme.s3)
+            VStack(alignment: .leading, spacing: Theme.s1) {
+                HiveSlotPicker()
+                Text("Needs the Red Cannon and the Hang Glider unlocked in the game. The walking routes use both.")
+                    .font(Theme.caption).foregroundStyle(Theme.dust)
+            }
+            .padding(.horizontal, Theme.s6).padding(.top, Theme.s3)
 
             HStack(spacing: Theme.s2) {
                 Color.clear.frame(width: 24, height: 1)
@@ -46,19 +50,22 @@ struct FieldsView: View {
 
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
-                    ForEach($model.profile.fields.indices, id: \.self) { i in
-                        FieldRow(field: $model.profile.fields[i]) {
-                            model.profile.fields.remove(at: i)
-                        }
+                    ForEach(model.profile.orderKeys, id: \.self) { key in
+                        rowView(key)
+                            .dropDestination(for: String.self) { items, _ in
+                                if let k = items.first { model.profile.move(k, before: key) }
+                                return true
+                            }
                         Divider().overlay(Theme.grain.opacity(0.6))
                     }
-                    if !model.profile.extras.isEmpty {
-                        Text("Between rounds").font(Theme.serif(14)).foregroundStyle(Theme.wax).frame(maxWidth: .infinity, alignment: .leading).padding(.top, Theme.s4)
-                        Text("Saved with this run. HiveMac does not run these yet.").font(Theme.caption).foregroundStyle(Theme.dust).frame(maxWidth: .infinity, alignment: .leading).padding(.bottom, Theme.s1)
-                        ForEach($model.profile.extras) { $step in
-                            ExtraRow(step: $step) { model.profile.extras.removeAll { $0.id == step.id } }
-                            Divider().overlay(Theme.grain.opacity(0.6))
+                    Color.clear.frame(height: 24)
+                        .dropDestination(for: String.self) { items, _ in
+                            if let k = items.first { model.profile.move(k, before: nil) }
+                            return true
                         }
+                    if !model.profile.extras.isEmpty {
+                        Text("Bug runs, planters and pickups are saved with this run. HiveMac does not run them yet.")
+                            .font(Theme.caption).foregroundStyle(Theme.dust).frame(maxWidth: .infinity, alignment: .leading)
                     }
                 }
                 .padding(.horizontal, Theme.s6)
@@ -91,6 +98,13 @@ struct FieldsView: View {
 }
 
 extension FieldsView {
+    @ViewBuilder func rowView(_ key: String) -> some View {
+        if key.hasPrefix("f:"), let i = model.profile.fields.firstIndex(where: { "f:" + $0.name == key }) {
+            FieldRow(field: $model.profile.fields[i], key: key) { model.profile.fields.remove(at: i) }
+        } else if let i = model.profile.extras.firstIndex(where: { "e:" + $0.id.uuidString == key }) {
+            ExtraRow(step: $model.profile.extras[i], key: key) { model.profile.extras.remove(at: i) }
+        }
+    }
     var roundMinutes: String {
         let m = model.profile.fields.filter(\.enabled).reduce(0) { $0 + $1.minutes }
         return m >= 120 ? String(format: "%.1f h", m / 60) : "\(Int(m.rounded())) min"
@@ -101,6 +115,7 @@ extension FieldsView {
 
 struct FieldRow: View {
     @Binding var field: FieldConfig
+    var key: String
     var remove: () -> Void
     @State private var open = ProcessInfo.processInfo.environment["HIVEMAC_OPEN"] != nil
 
@@ -109,7 +124,7 @@ struct FieldRow: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack(spacing: Theme.s2) {
-                Toggle("", isOn: $field.enabled).toggleStyle(.checkbox).labelsHidden().frame(width: 24)
+                DragHandle(key: key)
                 Button { open.toggle() } label: {
                     HStack(spacing: Theme.s1) {
                         Image(systemName: open ? "chevron.down" : "chevron.right").font(.system(size: 9, weight: .bold)).frame(width: 10)
@@ -138,6 +153,10 @@ struct FieldRow: View {
 
     private var more: some View {
         Grid(alignment: .leading, horizontalSpacing: Theme.s3, verticalSpacing: Theme.s2) {
+            GridRow {
+                Color.clear.frame(width: 1, height: 1)
+                Toggle("Use this field", isOn: $field.enabled).toggleStyle(.checkbox).font(Theme.body).gridCellColumns(3)
+            }
             GridRow {
                 label("Size")
                 Choice(options: ["xs", "s", "m", "l", "xl"].map { ($0, $0.uppercased()) }, selection: $field.size, width: 76)
@@ -181,6 +200,7 @@ struct FieldRow: View {
 struct ExtraRow: View {
     @EnvironmentObject var model: AppModel
     @Binding var step: ExtraStep
+    var key: String
     var remove: () -> Void
     @State private var open = true
 
@@ -189,7 +209,7 @@ struct ExtraRow: View {
     var body: some View {
         VStack(alignment: .leading, spacing: Theme.s2) {
             HStack(spacing: Theme.s2) {
-                Toggle("", isOn: $step.enabled).toggleStyle(.checkbox).labelsHidden().frame(width: 24)
+                DragHandle(key: key)
                 Button { open.toggle() } label: {
                     HStack(spacing: Theme.s1) {
                         Image(systemName: open ? "chevron.down" : "chevron.right").font(.system(size: 9, weight: .bold)).frame(width: 10)
@@ -201,7 +221,8 @@ struct ExtraRow: View {
             }
             .frame(height: Theme.rowHeight)
             if open {
-                Group {
+                VStack(alignment: .leading, spacing: Theme.s2) {
+                    Toggle("Use this step", isOn: $step.enabled).toggleStyle(.checkbox).font(Theme.body)
                     if step.kind == "planters" { planters } else { bugRun }
                 }.padding(.leading, 34).padding(.bottom, Theme.s3)
             }
@@ -281,5 +302,18 @@ struct HiveSlotPicker: View {
             }
             Spacer()
         }
+    }
+}
+
+
+/// The grip at the left of every row. Drag it onto another row to put this one just above it.
+struct DragHandle: View {
+    let key: String
+    var body: some View {
+        Image(systemName: "line.3.horizontal")
+            .font(.system(size: 12, weight: .semibold)).foregroundStyle(Theme.dust)
+            .frame(width: 24, height: 28).contentShape(Rectangle())
+            .draggable(key) { Text(key.dropFirst(2).capitalized).padding(6).background(Theme.plank) }
+            .help("Drag to change the order")
     }
 }
