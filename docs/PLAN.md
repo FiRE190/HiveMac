@@ -74,3 +74,18 @@ and saw it start and write its data folder.
 - Windowed or full screen Roblox. It is a setting, default windowed.
 - Whether HiveMac should be shared at all. If yes, `config/paths/natro/` is GPL data from
   Natro Macro and needs its notice kept; the rest is MIT.
+
+## Baseline: Python app, window open, idle (measured by Jonathan, Activity Monitor, 2026-11-05)
+
+Compare the Swift app against these numbers.
+
+| Process | CPU % | Threads | Idle wake ups | Memory |
+|---|---|---|---|---|
+| HiveMac (Python, pid 29570) | 1.4 | 9 | 0 | 143.4 MB |
+| AutoFill (HiveMac) (macOS helper for text fields) | 0.0 | 5 | 0 | 10.4 MB |
+| HiveMac (launcher, pid 29569) | 0.0 | 1 | 0 | 2.1 MB |
+| **Total** | **1.4** | **15** | **0** | **about 156 MB** |
+
+Targets from the plan: under 1% CPU waiting, under 150 MB resident. The Python app is over both
+with the window open. (Gathering with the window closed measured 0.11% earlier, so the window
+and Tk redraws are the cost.)
