@@ -1,4 +1,5 @@
 import SwiftUI
+import AppKit
 import HiveMacCore
 
 enum Tab: String, CaseIterable, Identifiable {
@@ -8,10 +9,12 @@ enum Tab: String, CaseIterable, Identifiable {
 
 struct MainView: View {
     @EnvironmentObject var model: AppModel
+    @State private var clickMonitor: Any?
     @State private var tab: Tab = Tab(rawValue: (ProcessInfo.processInfo.environment["HIVEMAC_TAB"] ?? "").capitalized) ?? (ProcessInfo.processInfo.environment["HIVEMAC_TAB"] == "settings" ? .settings : .fields)
 
     var body: some View {
         VStack(spacing: 0) {
+            Color.clear.frame(height: 0).onAppear(perform: installClickAway)
             HeaderView()
             Divider().overlay(Theme.grain)
             VStack(alignment: .leading, spacing: Theme.s3) {
@@ -139,7 +142,20 @@ struct ControlsView: View {
                 .buttonStyle(QuietButtonStyle(tint: Theme.ember)).disabled(!model.running)
             Spacer()
             Text("Stop key").font(Theme.caption).foregroundStyle(Theme.dust)
-            Keycap(text: model.stopKeyName.uppercased())
+            StopKeyField(compact: true)
+        }
+    }
+}
+
+extension MainView {
+    /// A click anywhere that is not the text being edited ends the edit, like a normal Mac app.
+    func installClickAway() {
+        guard clickMonitor == nil else { return }
+        clickMonitor = NSEvent.addLocalMonitorForEvents(matching: .leftMouseDown) { event in
+            guard let window = event.window, let editor = window.firstResponder as? NSTextView, editor.isFieldEditor else { return event }
+            let hit = window.contentView?.hitTest(event.locationInWindow)
+            if hit !== editor && !(hit?.isDescendant(of: editor) ?? false) { window.makeFirstResponder(nil) }
+            return event
         }
     }
 }

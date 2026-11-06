@@ -46,6 +46,10 @@ public struct MobTimers: Equatable, Sendable {
     }
 
     /// "ready", "back in 4 min", "back in 3 h".
+    public static func describeDuration(_ seconds: TimeInterval) -> String {
+        seconds < 3600 ? "\(Int((seconds / 60).rounded(.up))) min" : String(format: "%.1f h", seconds / 3600)
+    }
+
     public static func describe(remaining: TimeInterval, timed: Bool) -> String {
         if !timed { return "no timer" }
         if remaining <= 0 { return "ready" }

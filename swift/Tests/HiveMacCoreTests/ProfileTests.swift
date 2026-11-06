@@ -92,3 +92,16 @@ final class RunOrderTests: XCTestCase {
         XCTAssertEqual(p.orderKeys, ["f:rose", "f:sunflower", bug, "f:pine tree"])
     }
 }
+
+final class PlanterTimerTests: XCTestCase {
+    func testOnlyGrownSlotsAreReady() {
+        var e = ExtraStep(kind: "planters")
+        e.planterFields = ["rose", "pine tree", ""]; e.harvestHours = 4
+        e.planterPlanted = [1000, 1000 + 3 * 3600, 1000]
+        let now = 1000.0 + 4 * 3600
+        XCTAssertEqual(e.planterRemaining(0, now: now), 0)
+        XCTAssertEqual(e.planterRemaining(1, now: now), 3 * 3600)
+        XCTAssertNil(e.planterRemaining(2, now: now))
+        XCTAssertEqual(e.planterSlotsReady(now: now), [0])
+    }
+}

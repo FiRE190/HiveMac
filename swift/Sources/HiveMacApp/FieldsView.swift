@@ -5,6 +5,7 @@ struct FieldsView: View {
     @EnvironmentObject var model: AppModel
     @State private var renaming = false
     @State private var nameDraft = ""
+    @StateObject private var reorder = Reorder()
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -31,7 +32,7 @@ struct FieldsView: View {
 
             VStack(alignment: .leading, spacing: Theme.s1) {
                 HiveSlotPicker()
-                Text("Needs the Red Cannon and the Hang Glider unlocked in the game. The walking routes use both.")
+                Text("Needs the Red Cannon and the Glider (Mountain Top Shop, the upgrade of the Parachute). The walking routes use both.")
                     .font(Theme.caption).foregroundStyle(Theme.dust)
             }
             .padding(.horizontal, Theme.s6).padding(.top, Theme.s3)
@@ -51,25 +52,28 @@ struct FieldsView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
                     ForEach(model.profile.orderKeys, id: \.self) { key in
-                        rowView(key)
-                            .dropDestination(for: String.self) { items, _ in
-                                if let k = items.first { model.profile.move(k, before: key) }
-                                return true
-                            }
-                        Divider().overlay(Theme.grain.opacity(0.6))
-                    }
-                    Color.clear.frame(height: 24)
-                        .dropDestination(for: String.self) { items, _ in
-                            if let k = items.first { model.profile.move(k, before: nil) }
-                            return true
+                        VStack(spacing: 0) {
+                            rowView(key)
+                            Divider().overlay(Theme.grain.opacity(0.6))
                         }
+                        .background(GeometryReader { g in
+                            Color.clear.preference(key: RowFrames.self, value: [key: g.frame(in: .named("rows"))])
+                        })
+                        .background(reorder.dragging == key ? Theme.plank.opacity(0.9) : Color.clear)
+                        .offset(y: reorder.dragging == key ? reorder.offset(for: key) : 0)
+                        .zIndex(reorder.dragging == key ? 1 : 0)
+                        .shadow(color: .black.opacity(reorder.dragging == key ? 0.35 : 0), radius: 8, y: 2)
+                    }
                     if !model.profile.extras.isEmpty {
                         Text("Bug runs, planters and pickups are saved with this run. HiveMac does not run them yet.")
                             .font(Theme.caption).foregroundStyle(Theme.dust).frame(maxWidth: .infinity, alignment: .leading)
                     }
                 }
                 .padding(.horizontal, Theme.s6)
+                .coordinateSpace(name: "rows")
+                .onPreferenceChange(RowFrames.self) { reorder.frames = $0 }
             }
+            .environmentObject(reorder)
 
             HStack {
                 Menu {
@@ -94,6 +98,7 @@ struct FieldsView: View {
             .padding(Theme.s4)
         }
         .onChange(of: model.profile) { _, _ in model.saveProfile() }
+        .onAppear { reorder.move = { k, t in withAnimation(.snappy(duration: 0.18)) { model.profile.move(k, before: t) } }; reorder.keys = { model.profile.orderKeys } }
     }
 }
 
@@ -141,7 +146,7 @@ struct FieldRow: View {
                 Choice(options: Patterns.names.map { ($0, Self.pretty($0)) }, selection: $field.pattern, width: 132)
                 Spacer(minLength: 0)
                 Button(action: remove) { Image(systemName: "minus.circle") }
-                    .buttonStyle(.plain).foregroundStyle(Theme.dust).help("Remove this field")
+                    .buttonStyle(.plain).foregroundStyle(Theme.ember).help("Remove this field")
             }
             .frame(height: Theme.rowHeight + 4)
 
@@ -151,6 +156,16 @@ struct FieldRow: View {
 
     private static func pretty(_ s: String) -> String { s.replacingOccurrences(of: "_", with: " ").capitalized }
 
+    /// Changing the size scales the sprinkler distance with it, so the sprinkler stays in the same
+    /// place relative to the pattern.
+    private var sizeBinding: Binding<String> {
+        Binding(get: { field.size }, set: { new in
+            let ratio = Patterns.sizeFactor(new) / Patterns.sizeFactor(field.size)
+            field.sprinklerDistance = max(1, Int((Double(field.sprinklerDistance) * ratio).rounded()))
+            field.size = new
+        })
+    }
+
     private var more: some View {
         Grid(alignment: .leading, horizontalSpacing: Theme.s3, verticalSpacing: Theme.s2) {
             GridRow {
@@ -159,9 +174,9 @@ struct FieldRow: View {
             }
             GridRow {
                 label("Size")
-                Choice(options: ["xs", "s", "m", "l", "xl"].map { ($0, $0.uppercased()) }, selection: $field.size, width: 76)
-                label("Width")
-                TextField("", value: $field.width, format: .number).fieldStyle(width: 56)
+                Choice(options: ["xs", "s", "m", "l", "xl"].map { ($0, $0.uppercased()) }, selection: sizeBinding, width: 76)
+                Text("Sets how far the pattern spreads. The sprinkler distance follows it.")
+                    .font(Theme.caption).foregroundStyle(Theme.dust).gridCellColumns(2)
             }
             GridRow {
                 label("Camera")
@@ -174,6 +189,11 @@ struct FieldRow: View {
                 Choice(options: Self.locations.map { ($0, $0.capitalized) }, selection: $field.sprinklerLocation, width: 110)
                 label("Distance")
                 TextField("", value: $field.sprinklerDistance, format: .number).fieldStyle(width: 56)
+            }
+            GridRow {
+                label("Repeats")
+                TextField("", value: $field.width, format: .number).fieldStyle(width: 56)
+                Text("How many times the pattern repeats.").font(Theme.caption).foregroundStyle(Theme.dust).gridCellColumns(2)
             }
             GridRow {
                 Color.clear.frame(width: 1, height: 1)
@@ -217,7 +237,7 @@ struct ExtraRow: View {
                     }
                 }.buttonStyle(.plain)
                 Spacer()
-                Button(action: remove) { Image(systemName: "minus.circle") }.buttonStyle(.plain).foregroundStyle(Theme.dust)
+                Button(action: remove) { Image(systemName: "minus.circle") }.buttonStyle(.plain).foregroundStyle(Theme.ember).help("Remove this step")
             }
             .frame(height: Theme.rowHeight)
             if open {
@@ -255,6 +275,8 @@ struct ExtraRow: View {
 
     private var planters: some View {
         VStack(alignment: .leading, spacing: Theme.s2) {
+            Text("Each slot has its own timer. A round only visits slots that are grown and skips the rest.")
+                .font(Theme.caption).foregroundStyle(Theme.dust)
             ForEach(0..<3, id: \.self) { i in
                 HStack(spacing: Theme.s2) {
                     Text("Slot \(i + 1)").font(Theme.caption).foregroundStyle(Theme.dust).frame(width: 44, alignment: .leading)
@@ -264,9 +286,20 @@ struct ExtraRow: View {
                            selection: $step.planterTypes[i], width: 150)
                         .disabled(step.planterFields[i].isEmpty)
                 }
+                HStack(spacing: Theme.s3) {
+                    Color.clear.frame(width: 44, height: 1)
+                    Toggle("Replant after harvest", isOn: $step.planterReplant[i]).toggleStyle(.checkbox).font(Theme.body)
+                    let left = step.planterRemaining(i, now: Date().timeIntervalSince1970)
+                    Text(left == nil ? "Empty" : left == 0 ? "Ready" : "Ready in " + MobTimers.describeDuration(left ?? 0))
+                        .font(Theme.caption).foregroundStyle(left == 0 ? Theme.leaf : Theme.dust)
+                    Spacer(minLength: 0)
+                    Button("Planted now") { step.planterPlanted[i] = Date().timeIntervalSince1970 }
+                        .buttonStyle(QuietButtonStyle()).disabled(step.planterFields[i].isEmpty)
+                        .help("Start this slot's timer, for a planter you just put down")
+                }
             }
             HStack(spacing: Theme.s2) {
-                Text("Harvest every").font(Theme.caption).foregroundStyle(Theme.dust)
+                Text("Grows for").font(Theme.caption).foregroundStyle(Theme.dust)
                 TextField("", value: $step.harvestHours, format: .number).fieldStyle(width: 56)
                 Text("hours").font(Theme.caption).foregroundStyle(Theme.dust)
             }
@@ -306,14 +339,54 @@ struct HiveSlotPicker: View {
 }
 
 
-/// The grip at the left of every row. Drag it onto another row to put this one just above it.
+struct RowFrames: PreferenceKey {
+    static var defaultValue: [String: CGRect] = [:]
+    static func reduce(value: inout [String: CGRect], nextValue: () -> [String: CGRect]) { value.merge(nextValue()) { $1 } }
+}
+
+/// Live drag-to-reorder. The dragged row follows the pointer; the others slide out of the way.
+final class Reorder: ObservableObject {
+    @Published var dragging: String?
+    @Published var pointerY: CGFloat = 0
+    var grab: CGFloat = 0
+    var frames: [String: CGRect] = [:]
+    var move: (String, String?) -> Void = { _, _ in }
+    var keys: () -> [String] = { [] }
+
+    func offset(for key: String) -> CGFloat {
+        guard let f = frames[key] else { return 0 }
+        return pointerY - grab - f.midY
+    }
+
+    func changed(_ key: String, y: CGFloat) {
+        if dragging == nil, let f = frames[key] { dragging = key; grab = y - f.midY }
+        guard dragging == key, let me = frames[key] else { return }
+        pointerY = y
+        let order = keys()
+        guard let idx = order.firstIndex(of: key) else { return }
+        let center = y - grab
+        if idx > 0, let up = frames[order[idx - 1]], center < up.midY {
+            move(key, order[idx - 1])
+        } else if idx + 1 < order.count, let down = frames[order[idx + 1]], center > down.midY {
+            move(key, idx + 2 < order.count ? order[idx + 2] : nil)
+        }
+        _ = me
+    }
+
+    func ended() { withAnimation(.snappy(duration: 0.18)) { dragging = nil } }
+}
+
+/// The grip at the left of every row. Drag it up or down to change the order.
 struct DragHandle: View {
     let key: String
+    @EnvironmentObject var reorder: Reorder
     var body: some View {
         Image(systemName: "line.3.horizontal")
-            .font(.system(size: 12, weight: .semibold)).foregroundStyle(Theme.dust)
+            .font(.system(size: 12, weight: .semibold)).foregroundStyle(reorder.dragging == key ? Theme.honeyText : Theme.dust)
             .frame(width: 24, height: 28).contentShape(Rectangle())
-            .draggable(key) { Text(key.dropFirst(2).capitalized).padding(6).background(Theme.plank) }
+            .gesture(DragGesture(minimumDistance: 2, coordinateSpace: .named("rows"))
+                .onChanged { reorder.changed(key, y: $0.location.y) }
+                .onEnded { _ in reorder.ended() })
             .help("Drag to change the order")
     }
 }

@@ -30,7 +30,7 @@ struct SettingsView: View {
                 SettingRow(label: "Backpack percent") { TextField("", value: $model.hive.backpackPercent, format: .number).fieldStyle(width: 64) }
 
                 SectionTitle("Walking")
-                SettingRow(label: "Walk speed") { TextField("", value: num("game.walk_speed", 28), format: .number).fieldStyle(width: 64) }
+                SettingRow(label: "Walk speed, no buffs") { TextField("", value: num("game.walk_speed", 28), format: .number).fieldStyle(width: 64) }
                 SettingRow(label: "Default travel") {
                     Choice(options: [("walk", "Walk"), ("cannon", "Cannon")], selection: str("game.travel", "walk"), width: 120)
                 }
@@ -55,18 +55,28 @@ struct SettingsView: View {
 /// Click, then press the key you want. Keys the macro presses itself are refused.
 struct StopKeyField: View {
     @EnvironmentObject var model: AppModel
+    var compact = false
     @State private var capturing = false
     @State private var monitor: Any?
 
     var body: some View {
-        Button {
-            capturing ? finish() : begin()
-        } label: {
-            Text(capturing ? "Press a key" : model.stopKeyName.uppercased())
-                .frame(minWidth: 90)
+        if compact {
+            Button { capturing ? finish() : begin() } label: {
+                Text(capturing ? "Press a key" : model.stopKeyName.uppercased())
+                    .font(Theme.figure).foregroundStyle(capturing ? Theme.honeyText : Theme.wax)
+                    .padding(.horizontal, Theme.s2).frame(minWidth: 28, minHeight: 24)
+                    .background(RoundedRectangle(cornerRadius: 6).fill(Theme.plank))
+                    .overlay(RoundedRectangle(cornerRadius: 6).stroke(capturing ? Theme.honeyText : Theme.grain, lineWidth: 1))
+            }
+            .buttonStyle(.plain).help("Click, then press the key you want")
+            .onDisappear { finish() }
+        } else {
+            Button { capturing ? finish() : begin() } label: {
+                Text(capturing ? "Press a key" : model.stopKeyName.uppercased()).frame(minWidth: 90)
+            }
+            .buttonStyle(QuietButtonStyle(tint: capturing ? Theme.honeyText : Theme.wax))
+            .onDisappear { finish() }
         }
-        .buttonStyle(QuietButtonStyle(tint: capturing ? Theme.honeyText : Theme.wax))
-        .onDisappear { finish() }
     }
 
     private func begin() {

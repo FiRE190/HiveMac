@@ -50,8 +50,24 @@ public struct ExtraStep: Equatable, Identifiable, Sendable {
     public static let planters = ["paper", "ticking", "plastic", "candy", "red clay", "blue clay", "tacky",
                                   "pesticide", "heat-treated", "hydroponic", "petal", "planter of plenty"]
     public var harvestHours = 4.0
+    /// Plant again as soon as a slot is harvested.
+    public var planterReplant = [true, true, true]
+    /// Unix time each slot was planted; 0 = nothing planted.
+    public var planterPlanted: [Double] = [0, 0, 0]
     /// Where it sits in the run: the number of fields before it. Large = after every field.
     public var after = Int.max
+
+    /// Seconds until the slot is grown. nil = nothing planted. 0 = ready to harvest.
+    public func planterRemaining(_ slot: Int, now: Double) -> Double? {
+        guard planterFields.indices.contains(slot), !planterFields[slot].isEmpty,
+              planterPlanted.indices.contains(slot), planterPlanted[slot] > 0 else { return nil }
+        return max(0, planterPlanted[slot] + harvestHours * 3600 - now)
+    }
+
+    /// The slots worth a visit now: planted and grown. A round skips every other slot.
+    public func planterSlotsReady(now: Double) -> [Int] {
+        (0..<3).filter { planterRemaining($0, now: now) == 0 }
+    }
 
     public init(kind: String) { self.kind = kind; if kind == "pickups" { bugs = ["wealth clock", "honey dispenser"] } }
 
@@ -64,12 +80,14 @@ public struct ExtraStep: Equatable, Identifiable, Sendable {
         if let v = d["planter_types"] as? [String] { planterTypes = (v + ["paper", "paper", "paper"]).prefix(3).map { $0 } }
         if let v = (d["harvest_hours"] as? NSNumber)?.doubleValue { harvestHours = v }
         if let v = (d["after"] as? NSNumber)?.intValue { after = v }
+        if let v = d["planter_replant"] as? [Bool] { planterReplant = (v + [true, true, true]).prefix(3).map { $0 } }
+        if let v = d["planter_planted"] as? [NSNumber] { planterPlanted = (v.map(\.doubleValue) + [0, 0, 0]).prefix(3).map { $0 } }
     }
 
     public var json: [String: Any] {
         ["kind": kind, "enabled": enabled, "every_minutes": everyMinutes, "bugs": bugs,
          "planter_fields": planterFields, "planter_types": planterTypes, "harvest_hours": harvestHours,
-         "after": min(after, 1000)]
+         "after": min(after, 1000), "planter_replant": planterReplant, "planter_planted": planterPlanted]
     }
 }
 
