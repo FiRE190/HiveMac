@@ -47,6 +47,12 @@ class CalibratePanel(ctk.CTkFrame):
         ctk.CTkLabel(s1, text="1. Open Roblox in a window, then", anchor="w").pack(side="left", padx=4)
         ctk.CTkButton(s1, text="Detect Roblox", width=130, fg_color="#1d4ed8", command=self._detect).pack(side="right", padx=8)
 
+        # permissions
+        self._perm_label = ctk.CTkLabel(box, text="", justify="left", anchor="w", wraplength=520, font=ctk.CTkFont(size=12))
+        self._perm_label.pack(fill="x", padx=8, pady=(2, 0))
+        self._perm_btn = ctk.CTkButton(box, text="Ask macOS for permissions", width=200, fg_color="#78350f", command=self._ask_perms)
+        self._refresh_perms()
+
         # live readings
         live = ctk.CTkFrame(box, corner_radius=8)
         live.pack(fill="x", padx=4, pady=4)
@@ -103,6 +109,21 @@ class CalibratePanel(ctk.CTkFrame):
         self._msg.pack(anchor="w", padx=8, pady=4)
 
     # ---------------------------------------------------------------- state
+    def _refresh_perms(self) -> None:
+        from setup import permissions
+        problems = permissions.check().problems()
+        if problems:
+            self._perm_label.configure(text="\n".join(problems), text_color="#f59e0b")
+            self._perm_btn.pack(anchor="w", padx=8, pady=2)
+        else:
+            self._perm_label.configure(text="macOS permissions: all granted", text_color="#22c55e")
+            self._perm_btn.pack_forget()
+
+    def _ask_perms(self) -> None:
+        from setup import permissions
+        permissions.request_all()
+        self.after(1500, self._refresh_perms)
+
     def refresh_status(self) -> None:
         self._dot.configure(text_color="#22c55e" if calibrator.status()["window"] else "#ef4444")
         have = list_fields_with_paths("to_field")
@@ -121,6 +142,7 @@ class CalibratePanel(ctk.CTkFrame):
         return w
 
     def _detect(self) -> None:
+        self._refresh_perms()
         w = self._need_window()
         if w:
             calibrator.seed_defaults(w)
@@ -168,6 +190,9 @@ class CalibratePanel(ctk.CTkFrame):
 
     def _tick_live(self) -> None:
         if not self.winfo_exists():
+            return
+        if not self.winfo_ismapped():          # another tab is showing: do not read the screen
+            self.after(1500, self._tick_live)
             return
         try:
             if self._sensors is None:

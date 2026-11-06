@@ -13,7 +13,7 @@ def log_error_screenshot(context: str = "error") -> Optional[str]:
     _DEBUG_DIR.mkdir(parents=True, exist_ok=True)
     path = _DEBUG_DIR / f"{time.strftime('%Y%m%d_%H%M%S')}_{context}.png"
     try:
-        from calibration.roblox_finder import get_roblox_bounds
+        from calibration.roblox_finder import content_bounds as get_roblox_bounds
         from detection.screen_capture import get_screen_capture
         region = get_roblox_bounds()
         cap = get_screen_capture()

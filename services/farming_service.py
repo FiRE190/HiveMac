@@ -37,6 +37,10 @@ class _TailHandler(logging.Handler):
             pass
 
 
+class StartRefused(RuntimeError):
+    """Start was refused; the message says why and is shown to the user."""
+
+
 class FarmingService:
     def __init__(self) -> None:
         self._sm = get_state()
@@ -55,9 +59,9 @@ class FarmingService:
 
     # ------------------------------------------------------------------ build
     def _window_bounds(self) -> Optional[WindowBounds]:
-        from calibration.roblox_finder import get_roblox_bounds
+        from calibration.roblox_finder import content_bounds
         cfg = get_config()
-        b = get_roblox_bounds()
+        b = content_bounds()
         if b is None and cfg.get("screen.use_saved_window", False):
             b = cfg.get("screen.roblox_window")
         if not b or b.get("width", 0) < 100:
@@ -87,23 +91,36 @@ class FarmingService:
     def start(self, profile: Optional[dict] = None) -> None:
         with self._lock:
             if self._sm.current_state not in (IDLE, ERROR):
-                log.warning("Start ignored, state is %s", self._sm.current_state)
-                return
+                raise StartRefused(f"Already running ({self._sm.current_state}).")
+            from setup import permissions
+            perm = permissions.check()
+            if not perm.can_run:
+                for line in perm.problems():
+                    log.error(line)
+                msg = perm.problems()[0]
+                self._sm.set(detail=msg)
+                permissions.request_all()
+                raise StartRefused(msg)
+            if perm.hotkey_ok is False:
+                log.warning("F9 will not work (Input Monitoring is off). Stop with the button or the phone page.")
             if profile is not None:
                 self._profile = profile
             if not self._profile:
                 self._profile = get_profile_manager().load_last_used()
             fields = [f for f in self.fields_from_profile(self._profile) if f.enabled]
             if not fields:
-                log.error("No enabled fields in profile '%s'", self._profile.get("name"))
-                return
+                msg = f"No enabled fields in profile '{self._profile.get('name')}'."
+                log.error(msg)
+                self._sm.set(detail=msg)
+                raise StartRefused(msg)
             self._stop = threading.Event()
             self._pause = threading.Event()
             try:
                 self._game = self.build_game(self._stop, self._pause)
             except Exception as exc:
                 log.error("Could not build the game: %s", exc, exc_info=True)
-                return
+                self._sm.set(detail=f"Could not start: {exc}")
+                raise StartRefused(f"Could not start: {exc}") from exc
             self._loop = FarmLoop(self._game, fields, on_stats=self._on_stats)
             self._sm.set(active_profile=self._profile, active_profile_name=self._profile.get("name", "default"),
                          current_field="", is_paused=False, farming_start_time=time.time(), error_count=0,
@@ -256,6 +273,10 @@ class FarmingService:
                 cfg.set(f"game.{k}", v)
         cfg.save()
         GameSettings.from_config(cfg.get_section("game"))   # validates
+
+    def permission_problems(self) -> list[str]:
+        from setup import permissions
+        return permissions.check().problems()
 
     def log_tail(self, n: int = 60) -> list[str]:
         return list(self._tail.lines)[-max(1, min(n, 300)):]

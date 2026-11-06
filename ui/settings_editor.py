@@ -17,6 +17,8 @@ _FIELDS = [
     ("sprinkler_type", "Sprinkler type", ("combo", list(SPRINKLER_TYPES))),
     ("sprinkler_slot_key", "Sprinkler hotbar key", ("combo", ["1", "2", "3", "4", "5", "6", "7"])),
     ("travel", "Default travel", ("combo", ["walk", "cannon"])),
+    ("window_mode", "Roblox window (windowed is simpler)", ("combo", ["windowed", "fullscreen"])),
+    ("title_bar_height", "Title bar height in windowed mode (points)", "entry"),
     ("zoom_out_taps", "Zoom out taps after a reset", "entry"),
     ("reset_wait_s", "Wait after reset (s)", "entry"),
     ("death_extra_wait_s", "Extra wait after a death (s)", "entry"),
@@ -64,7 +66,7 @@ class SettingsEditor(ctk.CTkFrame):
             if isinstance(v, str):
                 v = v.strip()
                 try:
-                    v = int(v) if key in ("hive_slot", "zoom_out_taps") else float(v)
+                    v = int(v) if key in ("hive_slot", "zoom_out_taps", "title_bar_height") else float(v)
                 except ValueError:
                     pass
             cfg.set(f"game.{key}", v)

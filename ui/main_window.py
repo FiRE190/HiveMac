@@ -33,6 +33,7 @@ class MainWindow(ctk.CTk):
         self._svc = service
         self._sm = get_state()
         self._profile: dict = {}
+        self._shown: dict = {}
         ctk.set_appearance_mode("dark")
         ctk.set_default_color_theme("dark-blue")
         self.title("HiveMac")
@@ -114,7 +115,10 @@ class MainWindow(ctk.CTk):
             self._tabs.set("Calibrate")
             return
         self._fields.save()
-        self._svc.start(self._fields.current())
+        try:
+            self._svc.start(self._fields.current())
+        except Exception as exc:
+            self._detail.configure(text=str(exc))
 
     def _on_pause(self) -> None:
         if self._sm.current_state == PAUSED:
@@ -135,19 +139,27 @@ class MainWindow(ctk.CTk):
         self._pause.configure(state="normal" if running else "disabled", text="RESUME" if state == PAUSED else "PAUSE")
         self._stop.configure(state="normal" if running else "disabled")
 
+    def _set(self, key: str, widget, **kw) -> None:
+        """Configure a widget only when its value changed; redraws are the main idle cost."""
+        if self._shown.get(key) != kw:
+            self._shown[key] = kw
+            widget.configure(**kw)
+
     def _update(self) -> None:
         snap = self._sm.snapshot()
         state = snap["state"]
-        self._pill.configure(text=f"  {state}  ", fg_color=_STATE_COLORS.get(state, "#374151"))
-        self._timer.configure(text=_fmt_time(snap["runtime_seconds"]))
-        self._detail.configure(text=snap["detail"] or "")
-        self._cells["field"].configure(text=snap["field"] or "-")
-        self._cells["backpack_pct"].configure(text=f"{snap['backpack_pct']}%")
+        self._set("pill", self._pill, text=f"  {state}  ", fg_color=_STATE_COLORS.get(state, "#374151"))
+        self._set("timer", self._timer, text=_fmt_time(snap["runtime_seconds"]))
+        if snap["detail"] or self._shown.get("detail_had"):
+            self._set("detail", self._detail, text=snap["detail"] or "")
+            self._shown["detail_had"] = bool(snap["detail"])
+        self._set("field", self._cells["field"], text=snap["field"] or "-")
+        self._set("bp", self._cells["backpack_pct"], text=f"{snap['backpack_pct']}%")
         for k in ("cycles", "converts", "deaths"):
-            self._cells[k].configure(text=str(snap[k]))
+            self._set(k, self._cells[k], text=str(snap[k]))
         if snap["remote_urls"] and not self._remote.get():
             self._remote.insert(0, "  |  ".join(snap["remote_urls"]))
-        self.after(500, self._update)
+        self.after(1000, self._update)
 
     def _on_close(self) -> None:
         self._svc.stop()

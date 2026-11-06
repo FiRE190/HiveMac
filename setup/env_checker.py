@@ -5,7 +5,6 @@ Permission checks are best effort; the wizard also tests them live.
 from __future__ import annotations
 
 import importlib
-import subprocess
 import sys
 from dataclasses import dataclass, field
 from typing import Optional
@@ -38,30 +37,13 @@ def check_all() -> EnvStatus:
 
 
 def check_screen_recording() -> Optional[bool]:
-    """A capture that comes back all black on a lit screen means no permission.
-    Returns None when it cannot tell."""
-    try:
-        import mss
-        import numpy as np
-        with mss.mss() as sct:
-            img = sct.grab({"left": 0, "top": 0, "width": 200, "height": 60})
-            arr = np.frombuffer(img.bgra, dtype=np.uint8)
-            return bool(arr.any())
-    except Exception:
-        return None
+    from setup import permissions
+    return permissions.check().screen_capture
 
 
 def check_accessibility() -> Optional[bool]:
-    try:
-        out = subprocess.run(["osascript", "-e", 'tell application "System Events" to return name of first process'],
-                             capture_output=True, text=True, timeout=5)
-        if out.returncode == 0:
-            return True
-        if "not allowed assistive access" in (out.stderr or "").lower() or "1002" in (out.stderr or ""):
-            return False
-        return None
-    except Exception:
-        return None
+    from setup import permissions
+    return permissions.check().keys_ok
 
 
 def print_report(s: EnvStatus) -> None:

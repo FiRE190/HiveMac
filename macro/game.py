@@ -40,6 +40,8 @@ class GameSettings:
     sprinkler_type: str = "none"
     sprinkler_slot_key: str = "1"
     travel: str = "walk"              # default path variant: walk or cannon
+    window_mode: str = "windowed"     # windowed or fullscreen
+    title_bar_height: int = 28        # points removed from the top in windowed mode
     zoom_out_taps: int = 6
     reset_wait_s: float = 2.0         # minimum time between reset and the next walk
     death_extra_wait_s: float = 18.0  # the death screen is longer than a plain reset

@@ -12,6 +12,8 @@
     "sprinkler_type": "none",
     "sprinkler_slot_key": "1",
     "travel": "walk",
+    "window_mode": "windowed",
+    "title_bar_height": 28,
     "zoom_out_taps": 6,
     "reset_wait_s": 2.0,
     "death_extra_wait_s": 18.0,

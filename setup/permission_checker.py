@@ -28,7 +28,7 @@ class PermissionStatus:
         self._lock = threading.Lock()
 
     def recheck(self) -> None:
-        from setup.env_checker import check_screen_recording as _check_screen_recording, check_accessibility as _check_accessibility
+        from setup.env_checker import check_accessibility as _check_accessibility, check_screen_recording as _check_screen_recording
         with self._lock:
             self.screen_recording = _check_screen_recording()
             self.accessibility = _check_accessibility()

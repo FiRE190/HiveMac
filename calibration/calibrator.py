@@ -24,8 +24,8 @@ ADJUST = [
 
 
 def current_window() -> Optional[WindowBounds]:
-    from calibration.roblox_finder import get_roblox_bounds
-    b = get_roblox_bounds(force_refresh=True)
+    from calibration.roblox_finder import content_bounds
+    b = content_bounds()
     if not b or b.get("width", 0) < 100:
         return None
     cfg = get_config()
