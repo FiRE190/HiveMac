@@ -1,19 +1,14 @@
 """
-InputInterface — the ONLY file in the codebase that imports pyautogui.
+The only module that talks to pynput. Everything else asks for keys and mouse
+through here, so release_all() always knows what is held and tests can swap in
+a fake.
 
-Enforcement: run `grep -r "import pyautogui" . | grep -v input_interface.py`
-to verify no other file bypasses this layer.
-
-Design:
-  - All key presses, holds, and taps flow through this interface.
-  - Tracks currently held keys so release_all() is always safe.
-  - Exposes actual elapsed time from press_key() for closed-loop feedback.
-  - Human jitter is opt-in and applied at this layer only.
-  - PAUSE = 0 and FAILSAFE = False are set once here, not per-call.
+pynput posts Quartz CGEvents on macOS, the same route the Existance macro uses
+through pyautogui, and Roblox accepts them. Accessibility permission for the
+terminal (or Python) is required.
 """
 from __future__ import annotations
 
-import random
 import threading
 import time
 from typing import Optional
@@ -22,129 +17,135 @@ from utils.logger import get_logger
 
 log = get_logger(__name__)
 
-_WASD = ("w", "a", "s", "d")
-_ALL_MOVEMENT = (*_WASD, "space", "q", "e", "f", "r")
+MOVEMENT_KEYS = ("w", "a", "s", "d", "space", "shift")
 
 
 class InputInterface:
-    """
-    Sole owner of pyautogui.  Thread-safe for release_all(); press_key()
-    and tap_key() should only be called from one thread (the execution thread).
-    """
-
-    def __init__(self, jitter_ms: float = 10.0) -> None:
-        self._jitter_ms = jitter_ms
+    def __init__(self) -> None:
         self._held: set[str] = set()
-        self._held_lock = threading.Lock()
-        self._paused = threading.Event()   # set → block all input
-
+        self._lock = threading.Lock()
+        self._paused = threading.Event()
+        self._mouse_down = False
         try:
-            import pyautogui as _pg
-            _pg.PAUSE    = 0
-            _pg.FAILSAFE = False
-            self._pg = _pg
-            self._available = True
-        except ImportError:
-            log.warning("InputInterface: pyautogui not available — input is simulated")
-            self._pg = None
-            self._available = False
+            from pynput import keyboard, mouse
+            self._kb = keyboard.Controller()
+            self._mouse = mouse.Controller()
+            self._Key = keyboard.Key
+            self._Button = mouse.Button
+            self.available = True
+        except Exception as exc:  # pragma: no cover - depends on the host
+            log.warning("pynput unavailable, input is simulated: %s", exc)
+            self._kb = self._mouse = None
+            self.available = False
 
-    # ------------------------------------------------------------------ #
-    # Core input methods                                                   #
-    # ------------------------------------------------------------------ #
+    # -- key translation ---------------------------------------------------
+    def _key(self, name: str):
+        special = {
+            "space": "space", "esc": "esc", "escape": "esc", "enter": "enter", "return": "enter",
+            "shift": "shift", "pageup": "page_up", "pagedown": "page_down", "tab": "tab",
+            "ctrl": "ctrl", "cmd": "cmd", "alt": "alt", "up": "up", "down": "down", "left": "left", "right": "right",
+        }
+        n = name.lower()
+        if n in special:
+            return getattr(self._Key, special[n])
+        if n.startswith("f") and n[1:].isdigit():
+            return getattr(self._Key, n)
+        return n
 
-    def press_key(self, key: str, duration: float, *, jitter: bool = True) -> float:
-        """
-        Hold `key` for `duration` seconds.
-
-        If the key is already physically held (tracked in _held), emits only
-        a keyDown if needed, skips the redundant keyDown call, then releases
-        at the end — avoiding the duplicate transition overhead.
-
-        Returns the actual wall-clock duration held.
-        """
-        if self._paused.is_set():
-            return 0.0
-
-        if jitter and self._jitter_ms > 0:
-            noise = random.gauss(0, self._jitter_ms / 1000) * 0.5
-            duration = max(0.01, duration + noise)
-
-        t0 = time.perf_counter()
-
-        if self._available:
-            with self._held_lock:
-                already_held = key in self._held
-                self._held.add(key)
-            try:
-                if not already_held:
-                    self._pg.keyDown(key)
-                time.sleep(duration)
-            finally:
-                try:
-                    self._pg.keyUp(key)
-                except Exception:
-                    pass
-                with self._held_lock:
-                    self._held.discard(key)
-        else:
-            time.sleep(duration)
-
-        return time.perf_counter() - t0
-
-    def tap_key(self, key: str, presses: int = 1) -> None:
-        """Single or repeated key press (not held)."""
+    # -- keys ---------------------------------------------------------------
+    def key_down(self, key: str) -> None:
         if self._paused.is_set():
             return
-        if self._available:
-            self._pg.press(key, presses=presses)
-
-    def release_all(self) -> None:
-        """
-        Emergency key release.  Safe to call from any thread at any time.
-        Releases all tracked held keys AND all common movement keys.
-        """
-        if not self._available:
-            return
-        with self._held_lock:
-            tracked = set(self._held)
-
-        for k in (tracked | set(_ALL_MOVEMENT)):
+        with self._lock:
+            self._held.add(key)
+        if self.available:
             try:
-                self._pg.keyUp(k)
+                self._kb.press(self._key(key))
+            except Exception as exc:
+                log.debug("key_down %s failed: %s", key, exc)
+
+    def key_up(self, key: str) -> None:
+        with self._lock:
+            self._held.discard(key)
+        if self.available:
+            try:
+                self._kb.release(self._key(key))
+            except Exception as exc:
+                log.debug("key_up %s failed: %s", key, exc)
+
+    def tap(self, key: str, hold_s: float = 0.03) -> None:
+        if self._paused.is_set():
+            return
+        self.key_down(key)
+        time.sleep(hold_s)
+        self.key_up(key)
+
+    # -- mouse --------------------------------------------------------------
+    def mouse_down(self) -> None:
+        if self._paused.is_set():
+            return
+        self._mouse_down = True
+        if self.available:
+            try:
+                self._mouse.press(self._Button.left)
+            except Exception as exc:
+                log.debug("mouse_down failed: %s", exc)
+
+    def mouse_up(self) -> None:
+        self._mouse_down = False
+        if self.available:
+            try:
+                self._mouse.release(self._Button.left)
+            except Exception as exc:
+                log.debug("mouse_up failed: %s", exc)
+
+    def click(self) -> None:
+        self.mouse_down()
+        time.sleep(0.04)
+        self.mouse_up()
+
+    def move_mouse(self, x: int, y: int) -> None:
+        if self.available:
+            try:
+                self._mouse.position = (int(x), int(y))
+            except Exception as exc:
+                log.debug("move_mouse failed: %s", exc)
+
+    def mouse_position(self) -> tuple[int, int]:
+        if self.available:
+            try:
+                x, y = self._mouse.position
+                return int(x), int(y)
             except Exception:
                 pass
+        return (0, 0)
 
-        with self._held_lock:
+    # -- safety -------------------------------------------------------------
+    def release_all(self) -> None:
+        with self._lock:
+            held = set(self._held)
             self._held.clear()
-        log.debug("InputInterface.release_all() called")
-
-    # ------------------------------------------------------------------ #
-    # Pause gate (blocks input without releasing keys)                    #
-    # ------------------------------------------------------------------ #
+        for k in held | set(MOVEMENT_KEYS):
+            if self.available:
+                try:
+                    self._kb.release(self._key(k))
+                except Exception:
+                    pass
+        self.mouse_up()
+        log.debug("input: everything released")
 
     def set_paused(self, paused: bool) -> None:
-        """When paused, press_key and tap_key become no-ops."""
         if paused:
             self.release_all()
             self._paused.set()
         else:
             self._paused.clear()
 
-    # ------------------------------------------------------------------ #
-    # Diagnostics                                                          #
-    # ------------------------------------------------------------------ #
-
     def held_keys(self) -> frozenset[str]:
-        with self._held_lock:
+        with self._lock:
             return frozenset(self._held)
 
-    @property
-    def available(self) -> bool:
-        return self._available
 
-
-# Module-level singleton
 _instance: Optional[InputInterface] = None
 _inst_lock = threading.Lock()
 
