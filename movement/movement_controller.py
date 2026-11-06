@@ -16,7 +16,7 @@ from typing import Optional
 import pyautogui
 
 from config.config_manager import get_config
-from movement.patterns import MovementPattern, PatternFactory
+from movement.patterns import MovementPattern
 from movement.randomizer import jitter, human_sleep, micro_pause
 from state.state_manager import get_state
 from utils.logger import get_logger

@@ -4,26 +4,34 @@ regions, capturing templates, and testing movement patterns.
 
 Opened from the main window's Calibration button.
 """
-import json
 import threading
 import time
 from pathlib import Path
-from typing import Optional
 
 import customtkinter as ctk
-from PIL import Image, ImageTk
 
 from calibration.coordinate_recorder import CoordinateRecorder
 from detection.screen_capture import get_screen_capture
 from ocr.ocr_manager import get_ocr
 from movement.movement_controller import get_movement_controller
 from movement.patterns import PatternFactory
-from config.config_manager import get_config
 from utils.logger import get_logger
 
 log = get_logger(__name__)
 
 _TEMPLATES_DIR = Path(__file__).parent.parent / "templates"
+
+
+def crop_to_region(img, region: dict):
+    """Crop a full-screen capture (physical pixels) to a region given in screen points."""
+    from config.config_manager import get_config
+    scale = float(get_config().get("screen.scale_factor", 1.0) or 1.0)
+    left = int(region["left"] * scale)
+    top = int(region["top"] * scale)
+    right = left + int(region["width"] * scale)
+    bottom = top + int(region["height"] * scale)
+    h, w = img.shape[:2]
+    return img[max(0, top):min(h, bottom), max(0, left):min(w, right)]
 _COORDS_FILE = Path(__file__).parent.parent / "config" / "coordinates.json"
 
 
@@ -184,15 +192,26 @@ class CalibrationWindow(ctk.CTkToplevel):
             self._tpl_status.configure(text="Enter a template filename", text_color="red")
             return
 
-        self._tpl_status.configure(text="Capturing in 3s... switch to Roblox now", text_color="yellow")
-        threading.Thread(target=self._do_capture, args=(name,), daemon=True).start()
+        self._tpl_status.configure(text="Drag a box around the thing to match (switch to Roblox first)",
+                                   text_color="yellow")
+        from calibration.region_picker import RegionPicker
 
-    def _do_capture(self, name: str) -> None:
-        time.sleep(3)
+        def _picked(_key: str, region: dict) -> None:
+            threading.Thread(target=self._do_capture, args=(name, region), daemon=True).start()
+
+        self.after(200, lambda: RegionPicker(self, f"template:{name}", on_saved=_picked).show())
+
+    def _do_capture(self, name: str, region: dict) -> None:
+        """Save only the dragged region as the template. A whole-screen capture can never
+        match anything, so templates must be crops. Landmark names go to templates/landmarks/."""
+        time.sleep(1)
         sc = get_screen_capture()
-        img_array = sc.capture_full()
-        _TEMPLATES_DIR.mkdir(parents=True, exist_ok=True)
-        path = _TEMPLATES_DIR / (name if name.endswith(".png") else name + ".png")
+        img_array = crop_to_region(sc.capture_full(), region)
+        stem = name[:-4] if name.endswith(".png") else name
+        from navigation.node_names import landmark_to_node
+        target_dir = _TEMPLATES_DIR / "landmarks" if landmark_to_node(stem) else _TEMPLATES_DIR
+        target_dir.mkdir(parents=True, exist_ok=True)
+        path = target_dir / (stem + ".png")
 
         import cv2
         cv2.imwrite(str(path), img_array)

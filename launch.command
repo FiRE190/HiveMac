@@ -1,5 +1,5 @@
 #!/bin/bash
-# BeeSwarm Local Macro — double-click launcher for macOS
+# HiveMac — double-click launcher for macOS
 # Place this file anywhere; it finds the project automatically.
 
 # ── Locate project root (same folder as this script) ──────────────────
@@ -7,13 +7,13 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
 
 echo "=================================================="
-echo "  BeeSwarm Local Macro"
+echo "  HiveMac"
 echo "=================================================="
 echo ""
 
 # ── Python check ──────────────────────────────────────────────────────
 PYTHON=""
-for candidate in python3.11 python3.10 python3.9 python3; do
+for candidate in python3.12 python3.11 python3.10; do
     if command -v "$candidate" &>/dev/null; then
         PYTHON="$candidate"
         break
@@ -21,8 +21,8 @@ for candidate in python3.11 python3.10 python3.9 python3; do
 done
 
 if [ -z "$PYTHON" ]; then
-    echo "[ERROR] Python 3 not found."
-    echo "  Install from https://www.python.org or run: brew install python"
+    echo "[ERROR] Python 3.10, 3.11 or 3.12 not found (newer versions lack OpenCV wheels)."
+    echo "  Install one with: brew install python@3.12"
     read -p "Press Enter to exit..."
     exit 1
 fi
@@ -51,7 +51,7 @@ echo "[✓] Virtual environment activated"
 # ── Dependencies ───────────────────────────────────────────────────────
 echo "[*] Checking Python packages..."
 MISSING=$(python -c "
-required = ['customtkinter','cv2','pyautogui','mss','PIL','pytesseract','numpy','pynput']
+required = ['customtkinter','cv2','pyautogui','mss','PIL','numpy','pynput']
 missing = []
 for m in required:
     try: __import__(m)
@@ -73,24 +73,8 @@ else
     echo "[✓] All packages present"
 fi
 
-# ── Tesseract ─────────────────────────────────────────────────────────
-if ! command -v tesseract &>/dev/null; then
-    echo ""
-    echo "[!] Tesseract OCR not found."
-    if command -v brew &>/dev/null; then
-        echo "[*] Installing tesseract via Homebrew..."
-        brew install tesseract
-    else
-        echo "  Install Homebrew first: https://brew.sh"
-        echo "  Then run: brew install tesseract"
-        echo "  (The app will still launch but OCR will not work)"
-    fi
-else
-    echo "[✓] Tesseract: $(tesseract --version 2>&1 | head -1)"
-fi
-
 echo ""
-echo "[*] Launching BeeSwarm Local Macro..."
+echo "[*] Launching HiveMac..."
 echo ""
 
 # ── Launch ────────────────────────────────────────────────────────────

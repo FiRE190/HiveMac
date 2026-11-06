@@ -18,12 +18,11 @@ Hive data stored in profile:
     "method":    "template" | "manual" | "proximity"
   }
 """
-import time
 import threading
 from pathlib import Path
 from typing import Optional, Callable
 
-from calibration.roblox_finder import get_roblox_bounds, roblox_bounds_or_screen, focus_roblox
+from calibration.roblox_finder import get_roblox_bounds
 from calibration.relative_coords import save_relative, resolve
 from detection.screen_capture import get_screen_capture
 from detection.template_matcher import match_template, match_any

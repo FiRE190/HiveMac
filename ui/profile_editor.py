@@ -2,7 +2,6 @@
 Profile editor widget: inline create/load/save/delete with a form
 for all profile fields. Embedded inside the main window.
 """
-from dataclasses import dataclass, asdict, field
 from typing import Callable, Optional
 
 import customtkinter as ctk

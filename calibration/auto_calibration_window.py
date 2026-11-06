@@ -11,8 +11,6 @@ Replaces the old CalibrationWindow with a streamlined panel that:
   • Has per-item status badges that update live
 """
 import threading
-import time
-from pathlib import Path
 from typing import Optional
 
 import customtkinter as ctk
@@ -22,7 +20,7 @@ from calibration.auto_calibrator import run_auto_calibration, AutoCalibResult
 from calibration.hive_calibrator import HiveCalibrator
 from calibration.coordinate_recorder import CoordinateRecorder
 from calibration.region_picker import RegionPicker
-from calibration.validation import run_validation, ValidationReport
+from calibration.validation import run_validation
 from utils.logger import get_logger
 
 log = get_logger(__name__)
@@ -521,8 +519,8 @@ class AutoCalibrationWindow(ctk.CTkToplevel):
                     text_color="#22c55e" if num is not None else "#f59e0b",
                 ))
             except Exception as e:
-                self.after(0, lambda: self._ocr_result_label.configure(
-                    text=f"OCR error: {e}", text_color="#ef4444"
+                self.after(0, lambda err=str(e): self._ocr_result_label.configure(
+                    text=f"OCR error: {err}", text_color="#ef4444"
                 ))
 
         threading.Thread(target=_run, daemon=True).start()

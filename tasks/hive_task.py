@@ -1,58 +1,70 @@
 """
-Hive task: navigate to hive → wait for conversion UI → hold key until empty → return to field.
+HiveTask: navigate to hive → activate conversion → hold key until empty → return.
+
+Navigation uses RouteManager (→ Navigator → NavMap) — the ONLY path for
+inter-node travel.  The old coordinate-walker is not used here.
 """
 import time
 
+import pyautogui
+
 from tasks.base_task import BaseTask
-from movement.movement_controller import get_movement_controller
+from navigation.route_manager import get_route_manager
+from navigation.node_names import field_to_node
+from state.state_manager import get_state
 from movement.randomizer import human_sleep
-from detection.hive_detector import is_at_hive, is_hive_converting
+from detection.hive_detector import is_at_hive
 from detection.backpack_detector import get_backpack_pct
-from state.fsm import FSM, CONVERTING_POLLEN, FARMING
+from state.fsm import FSM, CONVERTING_POLLEN
 from utils.logger import get_logger
 
 log = get_logger(__name__)
 
-_CONVERT_KEY = "e"
-_MAX_HIVE_WAIT_SEC = 30
-_MAX_CONVERT_SEC = 120
+_CONVERT_KEY      = "e"
+_MAX_HIVE_WAIT    = 30     # seconds to wait for hive UI after arriving
+_MAX_CONVERT_SEC  = 120    # safety cap on conversion loop
 
 
 class HiveTask(BaseTask):
     def __init__(self, fsm: FSM, profile: dict) -> None:
         super().__init__("hive")
-        self._fsm = fsm
+        self._fsm     = fsm
         self._profile = profile
 
     def run(self) -> None:
-        mc = get_movement_controller()
-        log.info("HiveTask: navigating to hive")
+        rm = get_route_manager()
 
-        mc.navigate_to("hive", stop_event=self._stop_event, timeout_sec=45)
+        hive_node = self._profile.get("hive_node", "hive_1_entrance")
+        log.info("HiveTask: navigating to '%s'", hive_node)
 
-        # Wait for hive UI to appear
+        result = rm.execute(hive_node, self._stop_event)
+        if not result.confirmed and result.outcome.name == "FAILED":
+            log.warning("HiveTask: failed to reach hive — aborting conversion")
+            return
+
+        # Wait for hive proximity UI
         start = time.time()
         while not is_at_hive():
             if self._check_stop():
                 return
-            if time.time() - start > _MAX_HIVE_WAIT_SEC:
-                log.warning("HiveTask: timed out waiting for hive UI")
+            if time.time() - start > _MAX_HIVE_WAIT:
+                log.warning("HiveTask: hive UI not detected after %.0fs", _MAX_HIVE_WAIT)
                 return
             human_sleep(300, 50)
 
         self._fsm.transition(CONVERTING_POLLEN)
         log.info("HiveTask: converting pollen")
 
-        # Hold convert key until backpack empty
-        import pyautogui
+        # Hold convert key until backpack visual reads empty
         start = time.time()
         while time.time() - start < _MAX_CONVERT_SEC:
             if self._check_stop():
                 break
 
+            get_state().heartbeat()          # keep the watchdog quiet during a long conversion
             pct = get_backpack_pct()
-            if pct == 0:
-                log.info("HiveTask: backpack empty, done")
+            if pct <= 3:                      # the fill estimate is noisy near zero
+                log.info("HiveTask: backpack empty (%.0f%%)", pct)
                 break
 
             pyautogui.keyDown(_CONVERT_KEY)
@@ -62,8 +74,8 @@ class HiveTask(BaseTask):
 
         human_sleep(500, 100)
 
-        # Return to the assigned field
-        field = self._profile.get("target_field", "")
-        if field:
+        # Return to the assigned field via nav stack
+        field = field_to_node(self._profile.get("target_field", ""))
+        if field and not self._check_stop():
             log.info("HiveTask: returning to '%s'", field)
-            mc.navigate_to(field, stop_event=self._stop_event, timeout_sec=60)
+            rm.execute(field, self._stop_event)

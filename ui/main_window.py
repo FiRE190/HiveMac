@@ -12,14 +12,11 @@ Layout (top to bottom):
 
 All UI updates happen via after() — never blocked by background threads.
 """
-import time
-import threading
-from typing import Optional
 
 import customtkinter as ctk
 
 from state.state_manager import get_state
-from state.fsm import IDLE, FARMING, PAUSED
+from state.fsm import IDLE, PAUSED
 from services.farming_service import FarmingService
 from ui.profile_editor import ProfileEditor
 from ui.log_console import LogConsole

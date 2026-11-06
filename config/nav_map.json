@@ -1,0 +1,1086 @@
+{
+  "_version": "4.0",
+  "_notes": [
+    "ARCHITECTURE: Time is a fallback. Perception is the primary stopping condition.",
+    "arrival_landmark: landmark scanned for DURING movement \u2014 walk stops early when detected.",
+    "arrival_conf: minimum confidence to accept arrival (0.45 color-only, 0.60 template-matched).",
+    "Key durations (seconds) are UPPER BOUND TIMEOUTS at 16 studs/s baseline.",
+    "The navigator multiplies by 2.5\u00d7 (TIMEOUT_MARGIN) and inverse speed-ratio.",
+    "Diagonal keys: two-char strings e.g. 'sa', 'wd', 'wa', 'sd'.",
+    "Camera rotation entries: 'rot_rN' (right N taps) or 'rot_lN' (left N taps); duration ignored.",
+    "Routes derived from Natro Macro tile data. 1 tile = 4 studs at 16 studs/s baseline.",
+    "checkpoint: landmark verified POST-arrival (existing behavior).",
+    "upper_platform: intermediate waypoint \u2014 67.5-tile SA diagonal + rot_r4 from spawn."
+  ],
+  "nodes": {
+    "spawn_platform": {
+      "display": "Spawn Platform",
+      "description": "Player spawn area \u2014 visible after death/respawn",
+      "landmarks": [
+        "spawn_platform"
+      ]
+    },
+    "hive_1_entrance": {
+      "display": "Hive 1 Entrance",
+      "description": "Ground level in front of the first hive",
+      "landmarks": [
+        "hive_exterior"
+      ]
+    },
+    "upper_platform": {
+      "display": "Upper Platform",
+      "description": "Elevated platform reached via long SA diagonal \u2014 gateway to far fields",
+      "landmarks": [
+        "upper_platform"
+      ]
+    },
+    "red_cannon_pad": {
+      "display": "Red Cannon",
+      "description": "Red cannon launch platform near hive",
+      "landmarks": [
+        "red_cannon"
+      ]
+    },
+    "dandelion_field": {
+      "display": "Dandelion Field",
+      "description": "White dandelion field near spawn",
+      "landmarks": [
+        "dandelion_field"
+      ]
+    },
+    "sunflower_field": {
+      "display": "Sunflower Field",
+      "description": "Sunflower field past red cannon",
+      "landmarks": [
+        "sunflower_field"
+      ]
+    },
+    "clover_field": {
+      "display": "Clover Field",
+      "description": "Clover field near hive complex",
+      "landmarks": [
+        "clover_field"
+      ]
+    },
+    "blue_flower_field": {
+      "display": "Blue Flower Field",
+      "description": "Blue flower field \u2014 long SA diagonal from spawn",
+      "landmarks": [
+        "blue_flower_field"
+      ]
+    },
+    "mushroom_field": {
+      "display": "Mushroom Field",
+      "description": "Field on top of the large mushroom platform",
+      "landmarks": [
+        "mushroom_platform"
+      ]
+    },
+    "strawberry_field": {
+      "display": "Strawberry Field",
+      "description": "Strawberry field via upper platform",
+      "landmarks": [
+        "strawberry_field"
+      ]
+    },
+    "bamboo_field": {
+      "display": "Bamboo Field",
+      "description": "Bamboo field \u2014 via upper platform diagonal",
+      "landmarks": [
+        "bamboo_field"
+      ]
+    },
+    "stump_field": {
+      "display": "Stump Field",
+      "description": "Field on top of the giant tree stump \u2014 via upper platform",
+      "landmarks": [
+        "stump_field"
+      ]
+    },
+    "spider_field": {
+      "display": "Spider Field",
+      "description": "Dark spider-infested field \u2014 via upper platform",
+      "landmarks": [
+        "spider_field"
+      ]
+    },
+    "pine_tree_forest": {
+      "display": "Pine Tree Forest",
+      "description": "Pine tree forest area \u2014 via upper platform",
+      "landmarks": [
+        "pine_tree_forest"
+      ]
+    },
+    "rose_field": {
+      "display": "Rose Field",
+      "description": "Rose field \u2014 via upper platform",
+      "landmarks": [
+        "rose_field"
+      ]
+    },
+    "pineapple_patch": {
+      "display": "Pineapple Patch",
+      "description": "Pineapple patch \u2014 via upper platform",
+      "landmarks": [
+        "pineapple_patch"
+      ]
+    },
+    "cactus_field": {
+      "display": "Cactus Field",
+      "description": "Cactus field \u2014 via upper platform",
+      "landmarks": [
+        "cactus_field"
+      ]
+    },
+    "wealth_clock": {
+      "display": "Wealth Clock",
+      "description": "Wealth clock platform near the hive (edge keys are a guess: tune in game)",
+      "landmarks": [
+        "wealth_clock"
+      ]
+    }
+  },
+  "edges": [
+    {
+      "_comment": "Spawn \u2192 Hive 1 Entrance",
+      "from": "spawn_platform",
+      "to": "hive_1_entrance",
+      "method": "walk",
+      "terrain": "ground",
+      "keys": [
+        [
+          "w",
+          2.5
+        ]
+      ],
+      "arrival_landmark": "hive_exterior",
+      "arrival_conf": 0.45,
+      "checkpoint": "hive_exterior",
+      "checkpoint_conf": 0.45,
+      "cost": 1.0,
+      "fallback": "spawn_platform"
+    },
+    {
+      "_comment": "Spawn \u2192 Upper Platform (SA 16.875s + rot_r4). No reliable landmark for upper_platform yet \u2014 timeout only.",
+      "from": "spawn_platform",
+      "to": "upper_platform",
+      "method": "walk",
+      "terrain": "ramp_up",
+      "keys": [
+        [
+          "sa",
+          16.875
+        ],
+        [
+          "rot_r4",
+          0
+        ]
+      ],
+      "arrival_landmark": null,
+      "arrival_conf": 0.45,
+      "checkpoint": "upper_platform",
+      "checkpoint_conf": 0.35,
+      "cost": 4.0
+    },
+    {
+      "_comment": "Spawn \u2192 Dandelion Field (SA 2.44s + A 0.88s + rot_l2)",
+      "from": "spawn_platform",
+      "to": "dandelion_field",
+      "method": "walk",
+      "terrain": "ground",
+      "keys": [
+        [
+          "sa",
+          2.4375
+        ],
+        [
+          "a",
+          0.875
+        ],
+        [
+          "rot_l2",
+          0
+        ]
+      ],
+      "arrival_landmark": "dandelion_field",
+      "arrival_conf": 0.45,
+      "checkpoint": "dandelion_field",
+      "checkpoint_conf": 0.45,
+      "cost": 1.5
+    },
+    {
+      "_comment": "Dandelion \u2192 Spawn",
+      "from": "dandelion_field",
+      "to": "spawn_platform",
+      "method": "walk",
+      "terrain": "ground",
+      "keys": [
+        [
+          "rot_r2",
+          0
+        ],
+        [
+          "d",
+          0.875
+        ],
+        [
+          "sd",
+          2.4375
+        ]
+      ],
+      "arrival_landmark": "spawn_platform",
+      "arrival_conf": 0.4,
+      "checkpoint": "spawn_platform",
+      "checkpoint_conf": 0.4,
+      "cost": 1.5
+    },
+    {
+      "_comment": "Spawn \u2192 Sunflower Field (S 2.25s + SD 1.69s + rot_r2 + D 7.25s)",
+      "from": "spawn_platform",
+      "to": "sunflower_field",
+      "method": "walk",
+      "terrain": "ground",
+      "keys": [
+        [
+          "s",
+          2.25
+        ],
+        [
+          "sd",
+          1.6875
+        ],
+        [
+          "rot_r2",
+          0
+        ],
+        [
+          "d",
+          7.25
+        ]
+      ],
+      "arrival_landmark": "sunflower_field",
+      "arrival_conf": 0.5,
+      "checkpoint": "sunflower_field",
+      "checkpoint_conf": 0.5,
+      "cost": 3.0
+    },
+    {
+      "_comment": "Sunflower \u2192 Spawn",
+      "from": "sunflower_field",
+      "to": "spawn_platform",
+      "method": "walk",
+      "terrain": "ground",
+      "keys": [
+        [
+          "a",
+          7.25
+        ],
+        [
+          "rot_l2",
+          0
+        ],
+        [
+          "wa",
+          1.6875
+        ],
+        [
+          "w",
+          2.25
+        ]
+      ],
+      "arrival_landmark": "spawn_platform",
+      "arrival_conf": 0.4,
+      "checkpoint": "spawn_platform",
+      "checkpoint_conf": 0.4,
+      "cost": 3.0
+    },
+    {
+      "_comment": "Spawn \u2192 Mushroom Field (SA 9.0s + rot_r4 + W 7.88s)",
+      "from": "spawn_platform",
+      "to": "mushroom_field",
+      "method": "walk",
+      "terrain": "ramp_up",
+      "keys": [
+        [
+          "sa",
+          9.0
+        ],
+        [
+          "rot_r4",
+          0
+        ],
+        [
+          "w",
+          7.875
+        ]
+      ],
+      "arrival_landmark": "mushroom_platform",
+      "arrival_conf": 0.5,
+      "checkpoint": "mushroom_platform",
+      "checkpoint_conf": 0.5,
+      "cost": 4.5
+    },
+    {
+      "_comment": "Mushroom \u2192 Spawn",
+      "from": "mushroom_field",
+      "to": "spawn_platform",
+      "method": "walk",
+      "terrain": "ramp_down",
+      "keys": [
+        [
+          "s",
+          7.875
+        ],
+        [
+          "rot_l4",
+          0
+        ],
+        [
+          "sd",
+          9.0
+        ]
+      ],
+      "arrival_landmark": "spawn_platform",
+      "arrival_conf": 0.4,
+      "checkpoint": "spawn_platform",
+      "checkpoint_conf": 0.4,
+      "cost": 4.5
+    },
+    {
+      "_comment": "Spawn \u2192 Blue Flower Field (SA 21.72s + A 7.0s + rot_l2)",
+      "from": "spawn_platform",
+      "to": "blue_flower_field",
+      "method": "walk",
+      "terrain": "ground",
+      "keys": [
+        [
+          "sa",
+          21.72
+        ],
+        [
+          "a",
+          7.0
+        ],
+        [
+          "rot_l2",
+          0
+        ]
+      ],
+      "arrival_landmark": "blue_flower_field",
+      "arrival_conf": 0.45,
+      "checkpoint": "blue_flower_field",
+      "checkpoint_conf": 0.45,
+      "cost": 6.0
+    },
+    {
+      "_comment": "Blue Flower \u2192 Spawn",
+      "from": "blue_flower_field",
+      "to": "spawn_platform",
+      "method": "walk",
+      "terrain": "ground",
+      "keys": [
+        [
+          "rot_r2",
+          0
+        ],
+        [
+          "d",
+          7.0
+        ],
+        [
+          "sd",
+          21.72
+        ]
+      ],
+      "arrival_landmark": "spawn_platform",
+      "arrival_conf": 0.4,
+      "checkpoint": "spawn_platform",
+      "checkpoint_conf": 0.4,
+      "cost": 6.0
+    },
+    {
+      "_comment": "Spawn \u2192 Spider Field (SA 16.88s + rot_r4 + W 7.88s + WA 3.25s)",
+      "from": "spawn_platform",
+      "to": "spider_field",
+      "method": "walk",
+      "terrain": "ramp_up",
+      "keys": [
+        [
+          "sa",
+          16.875
+        ],
+        [
+          "rot_r4",
+          0
+        ],
+        [
+          "w",
+          7.875
+        ],
+        [
+          "wa",
+          3.25
+        ]
+      ],
+      "arrival_landmark": "spider_field",
+      "arrival_conf": 0.45,
+      "checkpoint": "spider_field",
+      "checkpoint_conf": 0.45,
+      "cost": 7.0
+    },
+    {
+      "_comment": "Spider \u2192 Spawn",
+      "from": "spider_field",
+      "to": "spawn_platform",
+      "method": "walk",
+      "terrain": "ramp_down",
+      "keys": [
+        [
+          "sd",
+          3.25
+        ],
+        [
+          "s",
+          7.875
+        ],
+        [
+          "rot_l4",
+          0
+        ],
+        [
+          "sd",
+          16.875
+        ]
+      ],
+      "arrival_landmark": "spawn_platform",
+      "arrival_conf": 0.4,
+      "checkpoint": "spawn_platform",
+      "checkpoint_conf": 0.4,
+      "cost": 7.0
+    },
+    {
+      "_comment": "Spawn \u2192 Bamboo Field (SA 16.88s + rot_r4 + W 5.88s + WD 7.88s + D 2.5s + rot_r2)",
+      "from": "spawn_platform",
+      "to": "bamboo_field",
+      "method": "walk",
+      "terrain": "ramp_up",
+      "keys": [
+        [
+          "sa",
+          16.875
+        ],
+        [
+          "rot_r4",
+          0
+        ],
+        [
+          "w",
+          5.875
+        ],
+        [
+          "wd",
+          7.875
+        ],
+        [
+          "d",
+          2.5
+        ],
+        [
+          "rot_r2",
+          0
+        ]
+      ],
+      "arrival_landmark": "bamboo_field",
+      "arrival_conf": 0.5,
+      "checkpoint": "bamboo_field",
+      "checkpoint_conf": 0.5,
+      "cost": 9.0
+    },
+    {
+      "_comment": "Bamboo \u2192 Spawn",
+      "from": "bamboo_field",
+      "to": "spawn_platform",
+      "method": "walk",
+      "terrain": "ramp_down",
+      "keys": [
+        [
+          "rot_l2",
+          0
+        ],
+        [
+          "a",
+          2.5
+        ],
+        [
+          "sa",
+          7.875
+        ],
+        [
+          "s",
+          5.875
+        ],
+        [
+          "rot_l4",
+          0
+        ],
+        [
+          "sd",
+          16.875
+        ]
+      ],
+      "arrival_landmark": "spawn_platform",
+      "arrival_conf": 0.4,
+      "checkpoint": "spawn_platform",
+      "checkpoint_conf": 0.4,
+      "cost": 9.0
+    },
+    {
+      "_comment": "Spawn \u2192 Clover Field (complex multi-segment)",
+      "from": "spawn_platform",
+      "to": "clover_field",
+      "method": "walk",
+      "terrain": "ground",
+      "keys": [
+        [
+          "sa",
+          11.1875
+        ],
+        [
+          "a",
+          13.125
+        ],
+        [
+          "sd",
+          0.7
+        ],
+        [
+          "s",
+          1.9375
+        ],
+        [
+          "a",
+          5.125
+        ],
+        [
+          "w",
+          1.375
+        ]
+      ],
+      "arrival_landmark": "clover_field",
+      "arrival_conf": 0.45,
+      "checkpoint": "clover_field",
+      "checkpoint_conf": 0.45,
+      "cost": 8.0
+    },
+    {
+      "_comment": "Clover \u2192 Spawn",
+      "from": "clover_field",
+      "to": "spawn_platform",
+      "method": "walk",
+      "terrain": "ground",
+      "keys": [
+        [
+          "s",
+          1.375
+        ],
+        [
+          "d",
+          5.125
+        ],
+        [
+          "w",
+          1.9375
+        ],
+        [
+          "wa",
+          0.7
+        ],
+        [
+          "d",
+          13.125
+        ],
+        [
+          "sd",
+          11.1875
+        ]
+      ],
+      "arrival_landmark": "spawn_platform",
+      "arrival_conf": 0.4,
+      "checkpoint": "spawn_platform",
+      "checkpoint_conf": 0.4,
+      "cost": 8.0
+    },
+    {
+      "_comment": "Upper Platform \u2192 Strawberry Field",
+      "from": "upper_platform",
+      "to": "strawberry_field",
+      "method": "walk",
+      "terrain": "ground",
+      "keys": [
+        [
+          "w",
+          7.75
+        ],
+        [
+          "wa",
+          1.75
+        ],
+        [
+          "a",
+          8.3125
+        ],
+        [
+          "wa",
+          1.6875
+        ],
+        [
+          "rot_l2",
+          0
+        ]
+      ],
+      "arrival_landmark": "strawberry_field",
+      "arrival_conf": 0.45,
+      "checkpoint": "strawberry_field",
+      "checkpoint_conf": 0.45,
+      "cost": 5.0
+    },
+    {
+      "_comment": "Strawberry \u2192 Upper Platform",
+      "from": "strawberry_field",
+      "to": "upper_platform",
+      "method": "walk",
+      "terrain": "ground",
+      "keys": [
+        [
+          "rot_r2",
+          0
+        ],
+        [
+          "sd",
+          1.6875
+        ],
+        [
+          "d",
+          8.3125
+        ],
+        [
+          "sd",
+          1.75
+        ],
+        [
+          "s",
+          7.75
+        ]
+      ],
+      "arrival_landmark": null,
+      "arrival_conf": 0.35,
+      "checkpoint": "upper_platform",
+      "checkpoint_conf": 0.35,
+      "cost": 5.0
+    },
+    {
+      "_comment": "Upper Platform \u2192 Pine Tree Forest",
+      "from": "upper_platform",
+      "to": "pine_tree_forest",
+      "method": "walk",
+      "terrain": "ground",
+      "keys": [
+        [
+          "w",
+          3.0
+        ],
+        [
+          "wd",
+          3.0
+        ],
+        [
+          "d",
+          3.0
+        ],
+        [
+          "s",
+          2.0
+        ]
+      ],
+      "arrival_landmark": "pine_tree_forest",
+      "arrival_conf": 0.45,
+      "checkpoint": "pine_tree_forest",
+      "checkpoint_conf": 0.45,
+      "cost": 5.0
+    },
+    {
+      "_comment": "Pine Tree \u2192 Upper Platform",
+      "from": "pine_tree_forest",
+      "to": "upper_platform",
+      "method": "walk",
+      "terrain": "ground",
+      "keys": [
+        [
+          "w",
+          2.0
+        ],
+        [
+          "a",
+          3.0
+        ],
+        [
+          "sa",
+          3.0
+        ],
+        [
+          "s",
+          3.0
+        ]
+      ],
+      "arrival_landmark": null,
+      "arrival_conf": 0.35,
+      "checkpoint": "upper_platform",
+      "checkpoint_conf": 0.35,
+      "cost": 5.0
+    },
+    {
+      "_comment": "Upper Platform \u2192 Pineapple Patch",
+      "from": "upper_platform",
+      "to": "pineapple_patch",
+      "method": "walk",
+      "terrain": "ground",
+      "keys": [
+        [
+          "wd",
+          4.0
+        ],
+        [
+          "d",
+          3.0
+        ],
+        [
+          "wd",
+          2.5
+        ],
+        [
+          "w",
+          1.5
+        ]
+      ],
+      "arrival_landmark": "pineapple_patch",
+      "arrival_conf": 0.45,
+      "checkpoint": "pineapple_patch",
+      "checkpoint_conf": 0.45,
+      "cost": 5.5
+    },
+    {
+      "_comment": "Pineapple \u2192 Upper Platform",
+      "from": "pineapple_patch",
+      "to": "upper_platform",
+      "method": "walk",
+      "terrain": "ground",
+      "keys": [
+        [
+          "s",
+          1.5
+        ],
+        [
+          "sa",
+          2.5
+        ],
+        [
+          "a",
+          3.0
+        ],
+        [
+          "sa",
+          4.0
+        ]
+      ],
+      "arrival_landmark": null,
+      "arrival_conf": 0.35,
+      "checkpoint": "upper_platform",
+      "checkpoint_conf": 0.35,
+      "cost": 5.5
+    },
+    {
+      "_comment": "Upper Platform \u2192 Cactus Field",
+      "from": "upper_platform",
+      "to": "cactus_field",
+      "method": "walk",
+      "terrain": "ground",
+      "keys": [
+        [
+          "d",
+          6.0
+        ],
+        [
+          "sd",
+          3.0
+        ],
+        [
+          "s",
+          2.0
+        ]
+      ],
+      "arrival_landmark": "cactus_field",
+      "arrival_conf": 0.45,
+      "checkpoint": "cactus_field",
+      "checkpoint_conf": 0.45,
+      "cost": 5.5
+    },
+    {
+      "_comment": "Cactus \u2192 Upper Platform",
+      "from": "cactus_field",
+      "to": "upper_platform",
+      "method": "walk",
+      "terrain": "ground",
+      "keys": [
+        [
+          "w",
+          2.0
+        ],
+        [
+          "wa",
+          3.0
+        ],
+        [
+          "a",
+          6.0
+        ]
+      ],
+      "arrival_landmark": null,
+      "arrival_conf": 0.35,
+      "checkpoint": "upper_platform",
+      "checkpoint_conf": 0.35,
+      "cost": 5.5
+    },
+    {
+      "_comment": "Upper Platform \u2192 Rose Field",
+      "from": "upper_platform",
+      "to": "rose_field",
+      "method": "walk",
+      "terrain": "ramp_up",
+      "keys": [
+        [
+          "w",
+          5.0
+        ],
+        [
+          "wa",
+          3.0
+        ],
+        [
+          "a",
+          4.0
+        ],
+        [
+          "wa",
+          2.0
+        ],
+        [
+          "w",
+          3.0
+        ]
+      ],
+      "arrival_landmark": "rose_field",
+      "arrival_conf": 0.45,
+      "checkpoint": "rose_field",
+      "checkpoint_conf": 0.45,
+      "cost": 8.0
+    },
+    {
+      "_comment": "Rose \u2192 Upper Platform",
+      "from": "rose_field",
+      "to": "upper_platform",
+      "method": "walk",
+      "terrain": "ramp_down",
+      "keys": [
+        [
+          "s",
+          3.0
+        ],
+        [
+          "sd",
+          2.0
+        ],
+        [
+          "d",
+          4.0
+        ],
+        [
+          "sd",
+          3.0
+        ],
+        [
+          "s",
+          5.0
+        ]
+      ],
+      "arrival_landmark": null,
+      "arrival_conf": 0.35,
+      "checkpoint": "upper_platform",
+      "checkpoint_conf": 0.35,
+      "cost": 8.0
+    },
+    {
+      "_comment": "Upper Platform \u2192 Stump Field",
+      "from": "upper_platform",
+      "to": "stump_field",
+      "method": "walk",
+      "terrain": "ramp_up",
+      "keys": [
+        [
+          "w",
+          4.0
+        ],
+        [
+          "wd",
+          5.0
+        ],
+        [
+          "d",
+          2.0
+        ],
+        [
+          "wd",
+          3.0
+        ],
+        [
+          "w",
+          2.5
+        ]
+      ],
+      "arrival_landmark": "stump_field",
+      "arrival_conf": 0.45,
+      "checkpoint": "stump_field",
+      "checkpoint_conf": 0.45,
+      "cost": 9.0
+    },
+    {
+      "_comment": "Stump \u2192 Upper Platform",
+      "from": "stump_field",
+      "to": "upper_platform",
+      "method": "walk",
+      "terrain": "ramp_down",
+      "keys": [
+        [
+          "s",
+          2.5
+        ],
+        [
+          "sa",
+          3.0
+        ],
+        [
+          "a",
+          2.0
+        ],
+        [
+          "sa",
+          5.0
+        ],
+        [
+          "s",
+          4.0
+        ]
+      ],
+      "arrival_landmark": null,
+      "arrival_conf": 0.35,
+      "checkpoint": "upper_platform",
+      "checkpoint_conf": 0.35,
+      "cost": 9.0
+    },
+    {
+      "_comment": "Hive 1 \u2192 Red Cannon",
+      "from": "hive_1_entrance",
+      "to": "red_cannon_pad",
+      "method": "walk",
+      "terrain": "ramp_down",
+      "keys": [
+        [
+          "d",
+          3.0
+        ],
+        [
+          "w",
+          1.5
+        ]
+      ],
+      "arrival_landmark": "red_cannon",
+      "arrival_conf": 0.5,
+      "checkpoint": "red_cannon",
+      "checkpoint_conf": 0.5,
+      "cost": 2.0
+    },
+    {
+      "_comment": "Red Cannon \u2192 Sunflower (cannon launch)",
+      "from": "red_cannon_pad",
+      "to": "sunflower_field",
+      "method": "cannon",
+      "cannon_key": "e",
+      "cannon_align_keys": [],
+      "expected_air_time_sec": 4.5,
+      "arrival_landmark": "sunflower_field",
+      "arrival_conf": 0.5,
+      "checkpoint": "sunflower_field",
+      "checkpoint_conf": 0.5,
+      "cost": 0.8,
+      "fallback": "hive_1_entrance"
+    },
+    {
+      "_comment": "Hive 1 Entrance -> Spawn (reverse of spawn -> hive)",
+      "from": "hive_1_entrance",
+      "to": "spawn_platform",
+      "method": "walk",
+      "terrain": "ground",
+      "keys": [
+        [
+          "s",
+          2.5
+        ]
+      ],
+      "arrival_landmark": "spawn_platform",
+      "arrival_conf": 0.45,
+      "checkpoint": "spawn_platform",
+      "checkpoint_conf": 0.45,
+      "cost": 1.0,
+      "fallback": "hive_1_entrance"
+    },
+    {
+      "_comment": "Hive 1 Entrance -> Wealth Clock. NEEDS TUNING IN GAME: key durations are a placeholder.",
+      "_needs_tuning": true,
+      "from": "hive_1_entrance",
+      "to": "wealth_clock",
+      "method": "walk",
+      "terrain": "ground",
+      "keys": [
+        [
+          "a",
+          2.0
+        ]
+      ],
+      "arrival_landmark": "wealth_clock",
+      "arrival_conf": 0.45,
+      "checkpoint": "wealth_clock",
+      "checkpoint_conf": 0.45,
+      "cost": 1.5,
+      "fallback": "hive_1_entrance"
+    },
+    {
+      "_comment": "Wealth Clock -> Hive 1 Entrance. NEEDS TUNING IN GAME.",
+      "_needs_tuning": true,
+      "from": "wealth_clock",
+      "to": "hive_1_entrance",
+      "method": "walk",
+      "terrain": "ground",
+      "keys": [
+        [
+          "d",
+          2.0
+        ]
+      ],
+      "arrival_landmark": "hive_exterior",
+      "arrival_conf": 0.45,
+      "checkpoint": "hive_exterior",
+      "checkpoint_conf": 0.45,
+      "cost": 1.5,
+      "fallback": "wealth_clock"
+    }
+  ]
+}

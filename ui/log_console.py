@@ -4,7 +4,6 @@ Must be polled via after() from the main thread — never call directly from bg 
 """
 import queue
 import logging
-from typing import Optional
 
 import customtkinter as ctk
 

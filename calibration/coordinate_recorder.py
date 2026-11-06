@@ -14,7 +14,6 @@ from typing import Callable, Optional
 
 from pynput import mouse
 
-from detection.screen_capture import get_screen_capture
 from utils.logger import get_logger
 
 log = get_logger(__name__)

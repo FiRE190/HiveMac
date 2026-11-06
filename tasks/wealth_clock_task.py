@@ -1,41 +1,45 @@
 """
-Wealth Clock task:
-  navigate → detect prompt → activate → optionally reset character → return
+WealthClockTask: navigate → detect prompt → activate → optionally reset character → return.
+
+Navigation uses RouteManager (→ Navigator → NavMap).
 """
 import time
 
 import pyautogui
 
 from tasks.base_task import BaseTask
-from movement.movement_controller import get_movement_controller
+from navigation.route_manager import get_route_manager
+from navigation.node_names import field_to_node
 from movement.randomizer import human_sleep
-from detection.wealth_clock_detector import is_wealth_clock_visible, is_wealth_clock_active
-from state.fsm import FSM, WEALTH_CLOCK, FARMING
+from detection.wealth_clock_detector import is_wealth_clock_visible
+from state.fsm import FSM
 from state.state_manager import get_state
 from utils.logger import get_logger
 
 log = get_logger(__name__)
 
-_ACTIVATE_KEY = "e"
-_RESET_CMD = "/e dance"  # or character reset binding; configurable
-_MAX_WAIT_SEC = 25
+_ACTIVATE_KEY  = "e"
+_MAX_WAIT_SEC  = 25
 
 
 class WealthClockTask(BaseTask):
     def __init__(self, fsm: FSM, profile: dict) -> None:
         super().__init__("wealth_clock")
-        self._fsm = fsm
+        self._fsm     = fsm
         self._profile = profile
 
     def run(self) -> None:
-        sm = get_state()
-        mc = get_movement_controller()
+        sm  = get_state()
+        rm  = get_route_manager()
         reset_char = self._profile.get("wealth_clock_reset_character", False)
 
         log.info("WealthClockTask: heading to wealth clock")
         sm.set(wealth_clock_count=sm.wealth_clock_count + 1)
 
-        mc.navigate_to("wealth_clock", stop_event=self._stop_event, timeout_sec=45)
+        result = rm.execute("wealth_clock", self._stop_event)
+        if result.outcome.name == "FAILED":
+            log.warning("WealthClockTask: failed to reach wealth clock")
+            return
 
         # Wait for the activation prompt
         start = time.time()
@@ -43,28 +47,34 @@ class WealthClockTask(BaseTask):
             if self._check_stop():
                 return
             if time.time() - start > _MAX_WAIT_SEC:
-                log.warning("WealthClockTask: prompt not found, aborting")
+                log.warning("WealthClockTask: prompt not visible after %.0fs", _MAX_WAIT_SEC)
                 return
             human_sleep(400, 80)
 
-        # Activate
         log.info("WealthClockTask: activating")
         pyautogui.press(_ACTIVATE_KEY)
         human_sleep(800, 100)
 
-        # Optional character reset
-        if reset_char:
+        if reset_char and not self._check_stop():
             log.info("WealthClockTask: resetting character")
-            pyautogui.hotkey("ctrl", "shift", "r")  # placeholder; user calibrates
-            human_sleep(3000, 500)
+            # Roblox: Esc opens the menu, R selects Reset Character, Enter confirms.
+            pyautogui.press("esc")
+            human_sleep(400, 80)
+            pyautogui.press("r")
+            human_sleep(400, 80)
+            pyautogui.press("enter")
+            human_sleep(4000, 500)
 
-        # Return to hive then field
-        mc.navigate_to("hive", stop_event=self._stop_event, timeout_sec=40)
+        if self._check_stop():
+            return
+
+        hive_node = self._profile.get("hive_node", "hive_1_entrance")
+        rm.execute(hive_node, self._stop_event)
         human_sleep(500, 100)
 
-        field = self._profile.get("target_field", "")
-        if field:
+        field = field_to_node(self._profile.get("target_field", ""))
+        if field and not self._check_stop():
             log.info("WealthClockTask: returning to '%s'", field)
-            mc.navigate_to(field, stop_event=self._stop_event, timeout_sec=60)
+            rm.execute(field, self._stop_event)
 
         log.info("WealthClockTask complete")

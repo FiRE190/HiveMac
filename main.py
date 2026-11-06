@@ -13,7 +13,6 @@ Startup flow:
 The UI then runs the setup wizard / permission guide on first run.
 """
 import sys
-import subprocess
 from pathlib import Path
 
 ROOT = Path(__file__).parent

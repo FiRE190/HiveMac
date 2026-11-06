@@ -7,11 +7,13 @@ from typing import Optional
 from detection.screen_capture import get_screen_capture
 from detection.template_matcher import match_any
 from config.config_manager import get_config
+from navigation.node_names import field_display_names
 from utils.logger import get_logger
 
 log = get_logger(__name__)
 
-KNOWN_FIELDS = [
+# Only fields the nav map can route to. The list is derived from config/nav_map.json.
+KNOWN_FIELDS = field_display_names() or [
     "Sunflower Field",
     "Dandelion Field",
     "Mushroom Field",

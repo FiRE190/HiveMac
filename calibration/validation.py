@@ -6,7 +6,6 @@ and returns a structured report.  The UI gates the Start button on
 validation passing (or user explicitly overriding warnings).
 """
 from dataclasses import dataclass, field
-from typing import Optional
 
 from utils.logger import get_logger
 
@@ -100,35 +99,24 @@ def _check_permissions(report: ValidationReport) -> None:
 
 
 def _check_ocr(report: ValidationReport) -> None:
-    try:
-        import pytesseract
-        import subprocess
-        r = subprocess.run(["tesseract", "--version"], capture_output=True, timeout=4)
-        ok = r.returncode == 0
-    except Exception:
-        ok = False
-
-    report.items.append(ValidationItem(
-        name     = "Tesseract OCR",
-        ok       = ok,
-        message  = "Tesseract available" if ok else "Tesseract not installed",
-        blocking = False,   # macro can still run, just no backpack % detection
-        fix_hint = "Run: brew install tesseract",
-    ))
+    # OCR removed — backpack detection now uses visual HSV fill estimation.
+    # This check is kept as a no-op so callers don't need updating.
+    pass
 
 
 def _check_hive(report: ValidationReport, profile: dict) -> None:
-    from calibration.relative_coords import resolve
-    hive_pos = resolve("hive")
-    hive_cfg  = profile.get("hive", {})
-    has_hive  = hive_pos is not None or hive_cfg.get("detected", False)
-
+    # The hive trip uses the nav map (hive_node), not recorded screen coordinates. A recorded
+    # hive position only improves the old quick checks, so it is a warning, not a blocker.
+    from navigation.node_names import is_known_node
+    hive_node = profile.get("hive_node", "hive_1_entrance")
+    known = is_known_node(hive_node)
     report.items.append(ValidationItem(
-        name     = "Hive location",
-        ok       = has_hive,
-        message  = "Hive location recorded" if has_hive else "Hive not calibrated",
+        name     = "Hive route",
+        ok       = known,
+        message  = f"Hive node '{hive_node}' is in the nav map" if known
+                   else f"Hive node '{hive_node}' is not in config/nav_map.json",
         blocking = True,
-        fix_hint = "Open Calibration → click 'Detect Hive' while standing near your hive",
+        fix_hint = "Set hive_node in the profile to a node from config/nav_map.json",
     ))
 
 
@@ -143,7 +131,7 @@ def _check_backpack_region(report: ValidationReport) -> None:
         ok       = ok,
         message  = f"Region set ({region.get('width')}×{region.get('height')}px)" if ok
                    else "Backpack region not calibrated",
-        blocking = False,
+        blocking = True,   # without it the backpack reads 0 forever and the loop never triggers
         fix_hint = "Open Calibration → 'Auto-Detect' or drag-select the backpack % area",
     ))
 
