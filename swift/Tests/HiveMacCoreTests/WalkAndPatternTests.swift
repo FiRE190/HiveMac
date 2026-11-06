@@ -11,12 +11,17 @@ final class FakeClock: Clock {
 final class FakeActuator: Actuator {
     var events: [String] = []
     var down = Set<String>()
-    func keyDown(_ k: String) { down.insert(k); events.append("down \(k)") }
+    var mouse = false
+    var onTap: ((String) -> Void)?
+    var onKeyDown: ((String) -> Void)?
+    func keyDown(_ k: String) { down.insert(k); events.append("down \(k)"); onKeyDown?(k) }
     func keyUp(_ k: String) { down.remove(k); events.append("up \(k)") }
-    func tap(_ k: String, holdS: Double) { events.append("tap \(k)") }
-    func mouseDown() { events.append("mouse down") }
-    func mouseUp() { events.append("mouse up") }
-    func releaseAll() { down.removeAll() }
+    func tap(_ k: String, holdS: Double) { events.append("tap \(k)"); onTap?(k) }
+    func mouseDown() { mouse = true; events.append("mouse down") }
+    func mouseUp() { mouse = false; events.append("mouse up") }
+    func moveMouse(_ x: Int, _ y: Int) { events.append("move \(x) \(y)") }
+    func releaseAll() { down.removeAll(); mouse = false; events.append("release") }
+    func taps(_ key: String) -> Int { events.filter { $0 == "tap \(key)" }.count }
 }
 
 final class WalkAndPatternTests: XCTestCase {

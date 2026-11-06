@@ -10,6 +10,12 @@ public protocol Actuator: AnyObject {
     func mouseDown()
     func mouseUp()
     func releaseAll()
+    /// Optional: park the pointer. Defaults to doing nothing.
+    func moveMouse(_ x: Int, _ y: Int)
+}
+
+public extension Actuator {
+    func moveMouse(_ x: Int, _ y: Int) {}
 }
 
 public protocol Clock: AnyObject {
