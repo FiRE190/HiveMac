@@ -16,6 +16,28 @@ struct SettingsView: View {
         Binding(get: { _ = model.settingsVersion; return model.store.string(path, fallback) }, set: { model.set(path, $0) })
     }
 
+    @State private var savedAt: Date?
+
+    static let hotbarItems: [(String, String)] = [
+        ("", "Empty"), ("sprinkler", "Sprinkler"), ("micro-converter", "Micro-Converter"), ("glitter", "Glitter"),
+        ("enzymes", "Enzymes"), ("oil", "Oil"), ("glue", "Glue"), ("stinger", "Stinger"), ("other", "Something else")]
+
+    /// What is in hotbar slot `n`. A sprinkler slot is also the key the macro presses to place it.
+    private func hotbar(_ n: Int) -> Binding<String> {
+        Binding(get: {
+            _ = model.settingsVersion
+            let v = model.store.string("game.hotbar.\(n)", "")
+            if v.isEmpty && model.store.string("game.hotbar.set", "") == "" && model.store.string("game.sprinkler_slot_key", "1") == "\(n)" { return "sprinkler" }
+            return v
+        }, set: { item in
+            model.set("game.hotbar.set", "1")
+            for k in 1...7 where model.store.string("game.hotbar.\(k)", "") == "sprinkler" && item == "sprinkler" { model.set("game.hotbar.\(k)", "") }
+            model.set("game.hotbar.\(n)", item)
+            if item == "sprinkler" { model.set("game.sprinkler_slot_key", "\(n)") }
+            if item == "micro-converter" { model.set("game.micro_converter_key", "\(n)") }
+        })
+    }
+
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
@@ -34,6 +56,11 @@ struct SettingsView: View {
                 SettingRow(label: "Default travel") {
                     Choice(options: [("walk", "Walk"), ("cannon", "Cannon")], selection: str("game.travel", "walk"), width: 120)
                 }
+                if model.store.string("game.travel", "walk") == "cannon" {
+                    Text("Cannon: needs the Red Cannon.\nMust have the Glider (Mountain Top Shop, the upgrade of the Parachute).")
+                        .font(Theme.caption).foregroundStyle(Theme.dust).fixedSize(horizontal: false, vertical: true)
+                        .padding(.bottom, Theme.s2)
+                }
                 SettingRow(label: "Roblox window") {
                     Choice(options: [("windowed", "Windowed"), ("fullscreen", "Full screen")], selection: str("game.window_mode", "windowed"), width: 120)
                 }
@@ -42,9 +69,24 @@ struct SettingsView: View {
                 SettingRow(label: "Type") {
                     Choice(options: Sprinkler.types.map { ($0, $0.capitalized) }, selection: str("game.sprinkler_type", "none"), width: 120)
                 }
-                SettingRow(label: "Hotbar key") {
-                    Choice(options: (1...7).map { ("\($0)", "\($0)") }, selection: str("game.sprinkler_slot_key", "1"), width: 64)
+
+                SectionTitle("Hotbar")
+            Text("Put what is in each slot of your in-game hotbar. The macro presses the right key for each item.")
+                .font(Theme.caption).foregroundStyle(Theme.dust).fixedSize(horizontal: false, vertical: true)
+            ForEach(1...7, id: \.self) { n in
+                SettingRow(label: "Slot \(n)") {
+                    Choice(options: Self.hotbarItems, selection: hotbar(n), width: 160)
                 }
+            }
+            HStack {
+                Button("Save") { model.set("game.saved", Date().timeIntervalSince1970); model.saveSettings(); savedAt = Date() }
+                    .buttonStyle(HoneyButtonStyle())
+                if let savedAt, Date().timeIntervalSince(savedAt) < 3 {
+                    Text("Saved").font(Theme.caption).foregroundStyle(Theme.leaf)
+                }
+                Spacer()
+            }
+            .padding(.top, Theme.s6)
             }
             .padding(.horizontal, Theme.s6).padding(.bottom, Theme.s6)
         }

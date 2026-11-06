@@ -4,6 +4,7 @@ import HiveMacPlatform
 
 struct CalibrateView: View {
     @EnvironmentObject var model: AppModel
+    @State private var advanced = false
 
     var body: some View {
         ScrollView {
@@ -21,23 +22,30 @@ struct CalibrateView: View {
                     Button("Detect Roblox") { model.detectRoblox() }.buttonStyle(HoneyButtonStyle())
                 }
                 .frame(minHeight: Theme.rowHeight)
-                Text("Open Roblox in a window and stand in your hive. Detect sets the backpack, health and hive spots from Natro's defaults.")
+                Text("Open Roblox in a window, stand in your hive, press Detect. That is all most people need.")
                     .font(Theme.caption).foregroundStyle(Theme.dust).fixedSize(horizontal: false, vertical: true)
 
-                SectionTitle("What HiveMac reads right now")
                 if model.live.calibrated {
-                    readingRow("Backpack", model.live.backpack.map { "\($0) percent" } ?? "no bar colour at that spot",
-                               extra: model.live.backpackRGB)
-                    readingRow("Health bar", model.live.healthGrey.map { $0 ? "grey (dead)" : "normal" } ?? "not read")
-                    readingRow("Hive prompt", model.live.hivePrompt.map { $0 ? "seen" : "not seen" } ?? "no template set, assumed at the hive")
-                    Text("Gather a little by hand: the backpack reading should follow the bar in the game.")
-                        .font(Theme.caption).foregroundStyle(Theme.dust).padding(.top, Theme.s2)
-                } else {
-                    Text("Press Detect Roblox first.").font(Theme.body).foregroundStyle(Theme.resin).frame(minHeight: Theme.rowHeight, alignment: .leading)
+                    HStack(spacing: Theme.s4) {
+                        Text("Backpack").font(Theme.body).foregroundStyle(Theme.resin)
+                        Text(model.live.backpack.map { "\($0) percent" } ?? "not readable").font(Theme.figure).foregroundStyle(Theme.wax)
+                        Text("Gather a little by hand: it should follow the bar.").font(Theme.caption).foregroundStyle(Theme.dust)
+                        Spacer()
+                    }
+                    .padding(.top, Theme.s3)
                 }
 
-                RecordWalkSection()
-                PicturesSection()
+                Button { withAnimation(.snappy(duration: 0.15)) { advanced.toggle() } } label: {
+                    HStack(spacing: Theme.s1) {
+                        Image(systemName: advanced ? "chevron.down" : "chevron.right").font(.system(size: 9, weight: .bold)).frame(width: 10)
+                        Text("Advanced").font(Theme.body)
+                    }.foregroundStyle(Theme.resin)
+                }
+                .buttonStyle(.plain).padding(.top, Theme.s6)
+                if advanced {
+                    RecordWalkSection()
+                    PicturesSection()
+                }
             }
             .padding(.horizontal, Theme.s6).padding(.bottom, Theme.s6)
         }

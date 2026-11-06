@@ -30,12 +30,8 @@ struct FieldsView: View {
                 Button("Cancel", role: .cancel) {}
             }
 
-            VStack(alignment: .leading, spacing: Theme.s1) {
-                HiveSlotPicker()
-                Text("Needs the Red Cannon and the Glider (Mountain Top Shop, the upgrade of the Parachute). The walking routes use both.")
-                    .font(Theme.caption).foregroundStyle(Theme.dust)
-            }
-            .padding(.horizontal, Theme.s6).padding(.top, Theme.s3)
+            HiveSlotPicker()
+                .padding(.horizontal, Theme.s6).padding(.top, Theme.s3)
 
             HStack(spacing: Theme.s2) {
                 Color.clear.frame(width: 24, height: 1)
@@ -60,7 +56,7 @@ struct FieldsView: View {
                             Color.clear.preference(key: RowFrames.self, value: [key: g.frame(in: .named("rows"))])
                         })
                         .background(reorder.dragging == key ? Theme.plank.opacity(0.9) : Color.clear)
-                        .offset(y: reorder.dragging == key ? reorder.offset(for: key) : 0)
+                        .offset(y: reorder.offset(for: key))
                         .zIndex(reorder.dragging == key ? 1 : 0)
                         .shadow(color: .black.opacity(reorder.dragging == key ? 0.35 : 0), radius: 8, y: 2)
                     }
@@ -98,7 +94,7 @@ struct FieldsView: View {
             .padding(Theme.s4)
         }
         .onChange(of: model.profile) { _, _ in model.saveProfile() }
-        .onAppear { reorder.move = { k, t in withAnimation(.snappy(duration: 0.18)) { model.profile.move(k, before: t) } }; reorder.keys = { model.profile.orderKeys } }
+        .onAppear { reorder.move = { k, t in model.profile.move(k, before: t) }; reorder.keys = { model.profile.orderKeys } }
     }
 }
 
@@ -112,7 +108,9 @@ extension FieldsView {
     }
     var roundMinutes: String {
         let m = model.profile.fields.filter(\.enabled).reduce(0) { $0 + $1.minutes }
-        return m >= 120 ? String(format: "%.1f h", m / 60) : "\(Int(m.rounded())) min"
+        let base = m >= 120 ? String(format: "%.1f h", m / 60) : "\(Int(m.rounded())) min"
+        let extras = model.profile.extras.filter(\.enabled).count
+        return extras == 0 ? base : base + " in fields, plus \(extras) extra step\(extras == 1 ? "" : "s")"
     }
     func begin() { nameDraft = model.profile.name; renaming = true }
     func nextName() -> String { "Run \(model.runs.count + 1)" }
@@ -288,7 +286,6 @@ struct ExtraRow: View {
                 }
                 HStack(spacing: Theme.s3) {
                     Color.clear.frame(width: 44, height: 1)
-                    Toggle("Replant after harvest", isOn: $step.planterReplant[i]).toggleStyle(.checkbox).font(Theme.body)
                     let left = step.planterRemaining(i, now: Date().timeIntervalSince1970)
                     Text(left == nil ? "Empty" : left == 0 ? "Ready" : "Ready in " + MobTimers.describeDuration(left ?? 0))
                         .font(Theme.caption).foregroundStyle(left == 0 ? Theme.leaf : Theme.dust)
@@ -298,6 +295,7 @@ struct ExtraRow: View {
                         .help("Start this slot's timer, for a planter you just put down")
                 }
             }
+            Toggle("Replant after every harvest", isOn: $step.planterReplant).toggleStyle(.checkbox).font(Theme.body)
             HStack(spacing: Theme.s2) {
                 Text("Grows for").font(Theme.caption).foregroundStyle(Theme.dust)
                 TextField("", value: $step.harvestHours, format: .number).fieldStyle(width: 56)
@@ -344,36 +342,54 @@ struct RowFrames: PreferenceKey {
     static func reduce(value: inout [String: CGRect], nextValue: () -> [String: CGRect]) { value.merge(nextValue()) { $1 } }
 }
 
-/// Live drag-to-reorder. The dragged row follows the pointer; the others slide out of the way.
+/// Drag to reorder. Nothing moves in the data until you let go, so the layout never shifts under
+/// the pointer: the dragged row follows it and the rows it passes slide by its height.
 final class Reorder: ObservableObject {
     @Published var dragging: String?
-    @Published var pointerY: CGFloat = 0
-    var grab: CGFloat = 0
+    @Published var dy: CGFloat = 0
+    @Published var target = 0
     var frames: [String: CGRect] = [:]
+    var snapshot: [String: CGRect] = [:]
+    var order: [String] = []
+    var from = 0
     var move: (String, String?) -> Void = { _, _ in }
     var keys: () -> [String] = { [] }
 
+    private var height: CGFloat { dragging.flatMap { snapshot[$0]?.height } ?? 0 }
+
     func offset(for key: String) -> CGFloat {
-        guard let f = frames[key] else { return 0 }
-        return pointerY - grab - f.midY
+        guard let d = dragging else { return 0 }
+        if key == d { return dy }
+        guard let r = order.firstIndex(of: key) else { return 0 }
+        if r > from && r <= target { return -height }
+        if r < from && r >= target { return height }
+        return 0
     }
 
-    func changed(_ key: String, y: CGFloat) {
-        if dragging == nil, let f = frames[key] { dragging = key; grab = y - f.midY }
-        guard dragging == key, let me = frames[key] else { return }
-        pointerY = y
-        let order = keys()
-        guard let idx = order.firstIndex(of: key) else { return }
-        let center = y - grab
-        if idx > 0, let up = frames[order[idx - 1]], center < up.midY {
-            move(key, order[idx - 1])
-        } else if idx + 1 < order.count, let down = frames[order[idx + 1]], center > down.midY {
-            move(key, idx + 2 < order.count ? order[idx + 2] : nil)
+    func changed(_ key: String, dy: CGFloat) {
+        if dragging == nil {
+            order = keys(); snapshot = frames
+            guard let i = order.firstIndex(of: key), snapshot[key] != nil else { return }
+            from = i; target = i; dragging = key
         }
-        _ = me
+        guard dragging == key, let me = snapshot[key] else { return }
+        self.dy = dy
+        let centre = me.midY + dy
+        let others = order.filter { $0 != key }
+        let t = others.filter { (snapshot[$0]?.midY ?? 0) < centre }.count
+        if t != target { withAnimation(.snappy(duration: 0.16)) { target = t } }
     }
 
-    func ended() { withAnimation(.snappy(duration: 0.18)) { dragging = nil } }
+    func ended() {
+        guard let key = dragging else { return }
+        let others = order.filter { $0 != key }
+        let before = target < others.count ? others[target] : nil
+        var t = Transaction(); t.disablesAnimations = true
+        withTransaction(t) {
+            move(key, before)
+            dragging = nil; dy = 0
+        }
+    }
 }
 
 /// The grip at the left of every row. Drag it up or down to change the order.
@@ -384,8 +400,8 @@ struct DragHandle: View {
         Image(systemName: "line.3.horizontal")
             .font(.system(size: 12, weight: .semibold)).foregroundStyle(reorder.dragging == key ? Theme.honeyText : Theme.dust)
             .frame(width: 24, height: 28).contentShape(Rectangle())
-            .gesture(DragGesture(minimumDistance: 2, coordinateSpace: .named("rows"))
-                .onChanged { reorder.changed(key, y: $0.location.y) }
+            .gesture(DragGesture(minimumDistance: 2, coordinateSpace: .global)
+                .onChanged { reorder.changed(key, dy: $0.translation.height) }
                 .onEnded { _ in reorder.ended() })
             .help("Drag to change the order")
     }
