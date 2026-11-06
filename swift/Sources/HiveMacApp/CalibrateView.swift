@@ -22,7 +22,7 @@ struct CalibrateView: View {
                     Button("Detect Roblox") { model.detectRoblox() }.buttonStyle(HoneyButtonStyle())
                 }
                 .frame(minHeight: Theme.rowHeight)
-                Text("Open Roblox in a window, stand in your hive, press Detect. That is all most people need.")
+                Text("Open Roblox, stand in your hive, press Detect. That is all most people need.")
                     .font(Theme.caption).foregroundStyle(Theme.dust).fixedSize(horizontal: false, vertical: true)
 
                 if model.live.calibrated {
@@ -174,7 +174,7 @@ struct PictureSheet: View {
                     }.buttonStyle(HoneyButtonStyle()).disabled(drag == nil)
                 }
             } else {
-                Text("Roblox is not open in a window. Open it, then try again.").font(Theme.body).foregroundStyle(Theme.ember)
+                Text("Roblox was not found. Open it, then try again.").font(Theme.body).foregroundStyle(Theme.ember)
                 HStack { Spacer(); Button("Close") { dismiss() }.buttonStyle(QuietButtonStyle()) }
             }
         }

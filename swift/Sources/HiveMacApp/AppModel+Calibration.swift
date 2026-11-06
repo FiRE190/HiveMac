@@ -75,7 +75,7 @@ extension AppModel {
     /// Finds Roblox and seeds the HUD spots with Natro's defaults where nothing is set yet.
     func detectRoblox() {
         guard let w = robloxBounds else {
-            append("Detect Roblox: no Roblox window found. Open it in a window first.")
+            append("Detect Roblox: no Roblox window found. Open it first.")
             refreshLive(); return
         }
         let d = Layout.natroDefaults(w)

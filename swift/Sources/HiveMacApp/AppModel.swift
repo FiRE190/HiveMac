@@ -153,7 +153,7 @@ final class AppModel: ObservableObject {
             return
         }
         guard robloxBounds != nil else {
-            setStatus(.error, "Roblox is not open in a window. Open it, then press Start.")
+            setStatus(.error, "Roblox was not found. Open it, then press Start.")
             return
         }
         guard !profile.fields.filter(\.enabled).isEmpty else {
