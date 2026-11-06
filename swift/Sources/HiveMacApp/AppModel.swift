@@ -32,7 +32,7 @@ enum RunState: String {
         case .gathering: return "Gathering"
         case .paused: return "Paused"
         case .warning: return "Warning"
-        case .error: return "Stopped with an error"
+        case .error: return "Stopped"
         }
     }
 }

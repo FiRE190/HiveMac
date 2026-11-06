@@ -64,10 +64,13 @@ struct FieldsView: View {
                         }
                         .disabled(model.profile.fields.contains { $0.name == name })
                     }
-                } label: { Text("Add a field") }
+                    Divider()
+                    Button("Bug run (later)") {}.disabled(true)
+                    Button("Planter check (later)") {}.disabled(true)
+                } label: { Text("Add to run") }
                 .menuStyle(.button).buttonStyle(QuietButtonStyle()).fixedSize()
                 Spacer()
-                Text("Fields run in this order, then start again from the top.").font(Theme.caption).foregroundStyle(Theme.dust)
+                Text("Top to bottom, \(roundMinutes) per round, then it starts again.").font(Theme.caption).foregroundStyle(Theme.dust)
             }
             .padding(Theme.s4)
         }
@@ -76,6 +79,10 @@ struct FieldsView: View {
 }
 
 extension FieldsView {
+    var roundMinutes: String {
+        let m = model.profile.fields.filter(\.enabled).reduce(0) { $0 + $1.minutes }
+        return m >= 120 ? String(format: "%.1f h", m / 60) : "\(Int(m.rounded())) min"
+    }
     func begin() { nameDraft = model.profile.name; renaming = true }
     func nextName() -> String { "Run \(model.runs.count + 1)" }
 }
@@ -83,27 +90,87 @@ extension FieldsView {
 struct FieldRow: View {
     @Binding var field: FieldConfig
     var remove: () -> Void
+    @State private var open = ProcessInfo.processInfo.environment["HIVEMAC_OPEN"] != nil
+
+    private static let locations = ["center", "upper left", "upper", "upper right", "left", "right", "lower left", "lower", "lower right"]
 
     var body: some View {
-        HStack(spacing: Theme.s2) {
-            Toggle("", isOn: $field.enabled).toggleStyle(.checkbox).labelsHidden().frame(width: 24)
-            Text(field.name.capitalized).font(Theme.body)
-                .foregroundStyle(field.enabled ? Theme.wax : Theme.dust).frame(width: 100, alignment: .leading)
-            TextField("", value: $field.minutes, format: .number).fieldStyle(width: 56)
-            TextField("", value: $field.backpackPercent, format: .number).fieldStyle(width: 56)
-            Picker("", selection: $field.returnMethod) {
-                Text("Walk").tag("walk"); Text("Reset").tag("reset")
-            }.labelsHidden().frame(width: 76)
-            Picker("", selection: $field.travel) {
-                Text("Default").tag("default"); Text("Walk").tag("walk"); Text("Cannon").tag("cannon")
-            }.labelsHidden().frame(width: 72)
-            Picker("", selection: $field.pattern) {
-                ForEach(Patterns.names, id: \.self) { Text($0.replacingOccurrences(of: "_", with: " ").capitalized).tag($0) }
-            }.labelsHidden().frame(width: 124)
-            Spacer(minLength: 0)
-            Button(action: remove) { Image(systemName: "minus.circle") }
-                .buttonStyle(.plain).foregroundStyle(Theme.dust).help("Remove this field")
+        VStack(alignment: .leading, spacing: 0) {
+            HStack(spacing: Theme.s2) {
+                Toggle("", isOn: $field.enabled).toggleStyle(.checkbox).labelsHidden().frame(width: 24)
+                Button { open.toggle() } label: {
+                    HStack(spacing: Theme.s1) {
+                        Image(systemName: open ? "chevron.down" : "chevron.right").font(.system(size: 9, weight: .bold)).frame(width: 10)
+                        Text(field.name.capitalized).font(Theme.body)
+                            .foregroundStyle(field.enabled ? Theme.wax : Theme.dust)
+                    }
+                    .frame(width: 100, alignment: .leading)
+                }
+                .buttonStyle(.plain).help("Show every option for this field")
+                TextField("", value: $field.minutes, format: .number).fieldStyle(width: 56)
+                TextField("", value: $field.backpackPercent, format: .number).fieldStyle(width: 56)
+                Picker("", selection: $field.returnMethod) {
+                    Text("Walk").tag("walk"); Text("Reset").tag("reset")
+                }.labelsHidden().frame(width: 76)
+                Picker("", selection: $field.travel) {
+                    Text("Default").tag("default"); Text("Walk").tag("walk"); Text("Cannon").tag("cannon")
+                }.labelsHidden().frame(width: 72)
+                Picker("", selection: $field.pattern) {
+                    ForEach(Patterns.names, id: \.self) { Text(Self.pretty($0)).tag($0) }
+                }.labelsHidden().frame(width: 124)
+                Spacer(minLength: 0)
+                Button(action: remove) { Image(systemName: "minus.circle") }
+                    .buttonStyle(.plain).foregroundStyle(Theme.dust).help("Remove this field")
+            }
+            .frame(height: Theme.rowHeight + 4)
+
+            if open { more.padding(.leading, 34).padding(.bottom, Theme.s3) }
         }
-        .frame(height: Theme.rowHeight + 4)
     }
+
+    private static func pretty(_ s: String) -> String { s.replacingOccurrences(of: "_", with: " ").capitalized }
+
+    private var more: some View {
+        Grid(alignment: .leading, horizontalSpacing: Theme.s3, verticalSpacing: Theme.s2) {
+            GridRow {
+                label("Size")
+                Picker("", selection: $field.size) { ForEach(["xs", "s", "m", "l", "xl"], id: \.self) { Text($0.uppercased()).tag($0) } }
+                    .labelsHidden().frame(width: 76)
+                label("Width")
+                TextField("", value: $field.width, format: .number).fieldStyle(width: 56)
+            }
+            GridRow {
+                label("Camera")
+                Picker("", selection: $field.camera) { Text("None").tag("none"); Text("Left").tag("left"); Text("Right").tag("right") }
+                    .labelsHidden().frame(width: 76)
+                label("Turns")
+                TextField("", value: $field.turns, format: .number).fieldStyle(width: 56)
+            }
+            GridRow {
+                label("Sprinkler")
+                Picker("", selection: $field.sprinklerLocation) {
+                    ForEach(Self.locations, id: \.self) { Text($0.capitalized).tag($0) }
+                }.labelsHidden().frame(width: 110)
+                label("Distance")
+                TextField("", value: $field.sprinklerDistance, format: .number).fieldStyle(width: 56)
+            }
+            GridRow {
+                Color.clear.frame(width: 1, height: 1)
+                Toggle("Shift lock", isOn: $field.shiftLock).toggleStyle(.checkbox).font(Theme.body)
+                Toggle("Flip forward and back", isOn: $field.invertFB).toggleStyle(.checkbox).font(Theme.body).gridCellColumns(2)
+            }
+            GridRow {
+                Color.clear.frame(width: 1, height: 1)
+                Toggle("Flip left and right", isOn: $field.invertLR).toggleStyle(.checkbox).font(Theme.body).gridCellColumns(2)
+                Button("Natro defaults") {
+                    var d = FieldConfig(name: field.name)
+                    d.enabled = field.enabled; d.minutes = field.minutes; d.backpackPercent = field.backpackPercent
+                    d.returnMethod = field.returnMethod; d.travel = field.travel
+                    field = d
+                }.buttonStyle(QuietButtonStyle()).help("Put pattern, size, camera and sprinkler back to Natro's values for this field")
+            }
+        }
+    }
+
+    private func label(_ t: String) -> some View { Text(t).font(Theme.caption).foregroundStyle(Theme.dust) }
 }

@@ -4,7 +4,6 @@ import HiveMacCore
 
 struct SettingsView: View {
     @EnvironmentObject var model: AppModel
-    @EnvironmentObject var updates: UpdateChecker
 
     private func num(_ path: String, _ fallback: Double) -> Binding<Double> {
         Binding(get: { _ = model.settingsVersion; return model.store.double(path, fallback) }, set: { model.set(path, $0) })
@@ -50,22 +49,6 @@ struct SettingsView: View {
                 }
                 SettingRow(label: "Sprinkler hotbar key") {
                     Picker("", selection: str("game.sprinkler_slot_key", "1")) { ForEach(1...7, id: \.self) { Text("\($0)").tag("\($0)") } }.labelsHidden().frame(width: 70)
-                }
-
-                SectionTitle("Stop key")
-                SettingRow(label: "Stop everything", hint: "Works in any app. On some keyboards F keys need Fn held.") {
-                    StopKeyField()
-                }
-                if let msg = model.stopKeyMessage {
-                    Text(msg).font(Theme.caption).foregroundStyle(Theme.ember).padding(.leading, 206)
-                }
-
-                SectionTitle("Updates")
-                UpdateRow(checker: updates)
-
-                SectionTitle("Data")
-                SettingRow(label: "Folder", hint: model.dirs.data.path) {
-                    Button("Show in Finder") { NSWorkspace.shared.activateFileViewerSelecting([model.dirs.data]) }.buttonStyle(QuietButtonStyle())
                 }
             }
             .padding(.horizontal, Theme.s6).padding(.bottom, Theme.s6)
