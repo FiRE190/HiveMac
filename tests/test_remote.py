@@ -14,13 +14,16 @@ class FakeController:
     def status(self):
         return {"state": self.state, "backpack_pct": 12}
     def start(self):
-        self.calls.append("start"); self.state = "GATHERING"
+        self.calls.append("start")
+        self.state = "GATHERING"
     def pause(self):
-        self.calls.append("pause"); self.state = "PAUSED"
+        self.calls.append("pause")
+        self.state = "PAUSED"
     def resume(self):
         self.calls.append("resume")
     def stop(self):
-        self.calls.append("stop"); self.state = "IDLE"
+        self.calls.append("stop")
+        self.state = "IDLE"
     def get_profile(self):
         return self.profile
     def set_profile(self, p):

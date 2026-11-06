@@ -135,3 +135,20 @@ def test_recorder_ignores_unknown_keys_and_handles_unterminated_hold():
     ev.append(KeyEvent(1.5, "e", True))
     steps = events_to_steps(ev, walk_speed=28)
     assert steps[0] == Step.walk(["w"], 7.0) and steps[1] == Step.tap("e")
+
+
+def test_describe_readings_plain_language():
+    from calibration.calibrator import describe_readings
+    assert "NOT FOUND" in describe_readings(False, None, None, 0, False, None, None)[0]
+    ok = describe_readings(True, (10, 200, 100), 35, 35, False, True, None)
+    assert any("35%" in line for line in ok) and any("not set up" in line for line in ok)
+    bad = describe_readings(True, (1, 2, 3), None, 0, False, None, None)
+    assert any("not a bar colour" in line for line in bad)
+
+
+def test_every_shipped_field_has_a_default_walk_and_cannon_variants_exist():
+    from movement.patterns import FIELDS
+    for f in FIELDS:
+        assert paths.find_path_file("to_field", f) is not None, f
+    cannon = [f for f in FIELDS if paths.find_path_file("to_field", f, "cannon")]
+    assert len(cannon) >= 10, cannon

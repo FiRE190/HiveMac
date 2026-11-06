@@ -13,11 +13,11 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - name: Install dev tools
-        run: pip install -r requirements-dev.txt
+      - name: Install
+        run: pip install -r requirements.txt -r requirements-dev.txt
       - name: Lint
         run: ruff check .
       - name: Compile every module
-        run: python -m compileall -q .
+        run: python -m compileall -q . -x venv
       - name: Tests (pure modules only, no screen access)
         run: pytest -q

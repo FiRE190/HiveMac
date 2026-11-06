@@ -1,463 +1,153 @@
 """
-Main control panel window (customtkinter, 480×800, dark theme).
-
-Layout (top to bottom):
-  1. Title bar
-  2. Status pill + runtime timer
-  3. Info grid: State / Field / Backpack / Task counts
-  4. Control buttons: Start | Pause | Stop | Debug | Calibration
-  5. Calibration checklist (collapsible, shows green/red status)
-  6. Profile editor (collapsible)
-  7. Log console
-
-All UI updates happen via after() — never blocked by background threads.
+Control panel: header with state and runtime, Start / Pause / Stop, and four
+tabs: Fields, Settings, Calibrate, Log. The remote control link is shown in the
+header so a phone can take over.
 """
+from __future__ import annotations
 
 import customtkinter as ctk
 
+from state.fsm import ERROR, IDLE, PAUSED
 from state.state_manager import get_state
-from state.fsm import IDLE, PAUSED
-from services.farming_service import FarmingService
-from ui.profile_editor import ProfileEditor
+from ui.calibrate_panel import CalibratePanel
+from ui.fields_editor import FieldsEditor
 from ui.log_console import LogConsole
-from calibration.checklist import get_checklist
+from ui.settings_editor import SettingsEditor
 from utils.logger import get_logger
 
 log = get_logger(__name__)
 
 _STATE_COLORS = {
-    "IDLE":               "#374151",
-    "FARMING":            "#065f46",
-    "RETURNING_TO_HIVE":  "#1e40af",
-    "CONVERTING_POLLEN":  "#1e40af",
-    "WEALTH_CLOCK":       "#78350f",
-    "MOB_RUN":            "#7c2d12",
-    "DEATH_RECOVERY":     "#7f1d1d",
-    "PAUSED":             "#4b5563",
+    "IDLE": "#374151", "RESETTING": "#1e40af", "CONVERTING": "#5b21b6", "TRAVELING": "#0e7490",
+    "GATHERING": "#065f46", "PAUSED": "#4b5563", "ERROR": "#7f1d1d",
 }
 
 
 def _fmt_time(seconds: int) -> str:
-    h = seconds // 3600
-    m = (seconds % 3600) // 60
-    s = seconds % 60
-    return f"{h:02d}:{m:02d}:{s:02d}"
+    return f"{seconds // 3600:02d}:{(seconds % 3600) // 60:02d}:{seconds % 60:02d}"
 
 
 class MainWindow(ctk.CTk):
-    def __init__(self, farming_service: FarmingService) -> None:
+    def __init__(self, service) -> None:
         super().__init__()
-        self._svc = farming_service
+        self._svc = service
         self._sm = get_state()
-        self._profile_visible = True
-
+        self._profile: dict = {}
         ctk.set_appearance_mode("dark")
         ctk.set_default_color_theme("dark-blue")
-
-        self.title("BeeSwarm Local Macro")
-        self.geometry("480x820")
-        self.resizable(False, False)
+        self.title("HiveMac")
+        self.geometry("620x840")
+        self.minsize(600, 700)
         self.protocol("WM_DELETE_WINDOW", self._on_close)
-
-        self._build_ui()
+        self._build()
         self._sm.subscribe(self._on_state_changed)
-        self._start_ui_update_loop()
-        self.after(800, self._maybe_launch_wizard)
+        self._update()
 
-    # ------------------------------------------------------------------ #
-    # UI Construction                                                      #
-    # ------------------------------------------------------------------ #
+    def _build(self) -> None:
+        head = ctk.CTkFrame(self, corner_radius=0, height=44)
+        head.pack(fill="x")
+        ctk.CTkLabel(head, text="HiveMac", font=ctk.CTkFont(size=16, weight="bold")).pack(side="left", padx=14, pady=8)
+        self._timer = ctk.CTkLabel(head, text="00:00:00", font=ctk.CTkFont(family="Courier", size=13), text_color="#9ca3af")
+        self._timer.pack(side="right", padx=12)
+        self._pill = ctk.CTkLabel(head, text="  IDLE  ", corner_radius=8, fg_color=_STATE_COLORS["IDLE"],
+                                  font=ctk.CTkFont(size=12, weight="bold"), width=110)
+        self._pill.pack(side="right", padx=6)
 
-    def _build_ui(self) -> None:
-        # ---- Title ----
-        title_bar = ctk.CTkFrame(self, height=44, corner_radius=0)
-        title_bar.pack(fill="x")
-        ctk.CTkLabel(
-            title_bar,
-            text="BeeSwarm Local Macro",
-            font=ctk.CTkFont(size=15, weight="bold"),
-        ).pack(side="left", padx=14, pady=8)
-        ctk.CTkLabel(
-            title_bar,
-            text="personal use only",
-            font=ctk.CTkFont(size=10),
-            text_color="#6b7280",
-        ).pack(side="left", pady=8)
+        self._detail = ctk.CTkLabel(self, text="", anchor="w", text_color="#d1d5db")
+        self._detail.pack(fill="x", padx=14, pady=(6, 0))
 
-        # ---- Status + timer ----
-        status_bar = ctk.CTkFrame(self, fg_color="transparent")
-        status_bar.pack(fill="x", padx=10, pady=(6, 2))
-
-        self._state_pill = ctk.CTkLabel(
-            status_bar,
-            text="  IDLE  ",
-            font=ctk.CTkFont(size=12, weight="bold"),
-            corner_radius=8,
-            fg_color=_STATE_COLORS["IDLE"],
-            width=120,
-        )
-        self._state_pill.pack(side="left")
-
-        self._timer_label = ctk.CTkLabel(
-            status_bar,
-            text="00:00:00",
-            font=ctk.CTkFont(family="Courier", size=13),
-            text_color="#9ca3af",
-        )
-        self._timer_label.pack(side="right", padx=8)
-
-        # ---- Info grid ----
         info = ctk.CTkFrame(self, corner_radius=8)
         info.pack(fill="x", padx=10, pady=4)
+        self._cells = {}
+        for col, (key, label) in enumerate([("field", "FIELD"), ("backpack_pct", "BACKPACK"), ("cycles", "CYCLES"),
+                                            ("converts", "CONVERTS"), ("deaths", "DEATHS")]):
+            ctk.CTkLabel(info, text=label, font=ctk.CTkFont(size=10), text_color="#9ca3af").grid(row=0, column=col, padx=10, pady=(6, 0), sticky="w")
+            v = ctk.CTkLabel(info, text="-", font=ctk.CTkFont(size=13, weight="bold"))
+            v.grid(row=1, column=col, padx=10, pady=(0, 6), sticky="w")
+            self._cells[key] = v
+            info.columnconfigure(col, weight=1)
 
-        def info_cell(parent, label: str, col: int) -> ctk.CTkLabel:
-            ctk.CTkLabel(parent, text=label, font=ctk.CTkFont(size=10), text_color="#9ca3af").grid(
-                row=0, column=col, padx=12, pady=(6, 0), sticky="w"
-            )
-            val = ctk.CTkLabel(parent, text="—", font=ctk.CTkFont(size=13, weight="bold"))
-            val.grid(row=1, column=col, padx=12, pady=(0, 6), sticky="w")
-            return val
+        btns = ctk.CTkFrame(self, fg_color="transparent")
+        btns.pack(fill="x", padx=10, pady=4)
+        self._start = ctk.CTkButton(btns, text="START", width=100, height=36, fg_color="#065f46", hover_color="#047857",
+                                    font=ctk.CTkFont(weight="bold"), command=self._on_start)
+        self._start.pack(side="left", padx=4)
+        self._pause = ctk.CTkButton(btns, text="PAUSE", width=100, height=36, fg_color="#78350f", hover_color="#92400e",
+                                    font=ctk.CTkFont(weight="bold"), command=self._on_pause, state="disabled")
+        self._pause.pack(side="left", padx=4)
+        self._stop = ctk.CTkButton(btns, text="STOP", width=100, height=36, fg_color="#7f1d1d", hover_color="#991b1b",
+                                   font=ctk.CTkFont(weight="bold"), command=self._on_stop, state="disabled")
+        self._stop.pack(side="left", padx=4)
+        ctk.CTkLabel(btns, text="F9 stops everything", text_color="#6b7280", font=ctk.CTkFont(size=11)).pack(side="right", padx=8)
 
-        self._field_val   = info_cell(info, "FIELD",   0)
-        self._bp_val      = info_cell(info, "BACKPACK", 1)
-        self._wc_val      = info_cell(info, "W.CLOCKS", 2)
-        self._mob_val     = info_cell(info, "MOB RUNS", 3)
+        self._remote = ctk.CTkEntry(self, placeholder_text="remote control link", font=ctk.CTkFont(size=11))
+        self._remote.pack(fill="x", padx=14, pady=(0, 4))
 
-        for i in range(4):
-            info.columnconfigure(i, weight=1)
+        self._tabs = ctk.CTkTabview(self)
+        self._tabs.pack(fill="both", expand=True, padx=10, pady=(0, 8))
+        for name in ("Fields", "Settings", "Calibrate", "Log"):
+            self._tabs.add(name)
+        self._fields = FieldsEditor(self._tabs.tab("Fields"), on_profile_changed=self._on_profile_changed)
+        self._fields.pack(fill="both", expand=True)
+        self._settings = SettingsEditor(self._tabs.tab("Settings"))
+        self._settings.pack(fill="both", expand=True)
+        self._calib = CalibratePanel(self._tabs.tab("Calibrate"), self._svc)
+        self._calib.pack(fill="both", expand=True)
+        self._log = LogConsole(self._tabs.tab("Log"))
+        self._log.pack(fill="both", expand=True)
 
-        # ---- Control buttons ----
-        btn_row = ctk.CTkFrame(self, fg_color="transparent")
-        btn_row.pack(fill="x", padx=10, pady=6)
+        urls = self._sm.remote_urls
+        if urls:
+            self._remote.insert(0, "  |  ".join(urls))
+        from calibration.calibrator import required_complete
+        if not required_complete():
+            self._tabs.set("Calibrate")
 
-        self._start_btn = ctk.CTkButton(
-            btn_row, text="START", width=90, height=36,
-            fg_color="#065f46", hover_color="#047857",
-            font=ctk.CTkFont(weight="bold"),
-            command=self._on_start,
-        )
-        self._start_btn.pack(side="left", padx=4)
-
-        self._pause_btn = ctk.CTkButton(
-            btn_row, text="PAUSE", width=90, height=36,
-            fg_color="#78350f", hover_color="#92400e",
-            font=ctk.CTkFont(weight="bold"),
-            command=self._on_pause,
-            state="disabled",
-        )
-        self._pause_btn.pack(side="left", padx=4)
-
-        self._stop_btn = ctk.CTkButton(
-            btn_row, text="STOP", width=90, height=36,
-            fg_color="#7f1d1d", hover_color="#991b1b",
-            font=ctk.CTkFont(weight="bold"),
-            command=self._on_stop,
-            state="disabled",
-        )
-        self._stop_btn.pack(side="left", padx=4)
-
-        # Debug toggle
-        self._debug_var = ctk.BooleanVar(value=False)
-        ctk.CTkCheckBox(btn_row, text="Debug", variable=self._debug_var,
-                        command=self._on_debug_toggle, width=70).pack(side="left", padx=8)
-
-        # Calibration button
-        ctk.CTkButton(
-            btn_row, text="Calibrate", width=90, height=36,
-            command=self._open_calibration,
-        ).pack(side="right", padx=4)
-
-        # ---- Calibration checklist (collapsible) ----
-        checklist_header = ctk.CTkFrame(self, fg_color="transparent")
-        checklist_header.pack(fill="x", padx=10, pady=(4, 0))
-
-        self._checklist_toggle_btn = ctk.CTkButton(
-            checklist_header, text="▼ Calibration Status", width=200, height=26,
-            fg_color="transparent", hover_color="#374151", anchor="w",
-            command=self._toggle_checklist,
-        )
-        self._checklist_toggle_btn.pack(side="left")
-
-        self._wizard_btn = ctk.CTkButton(
-            checklist_header, text="Run Setup Wizard", width=140, height=26,
-            fg_color="#1d4ed8", hover_color="#1e40af",
-            command=self._open_wizard,
-        )
-        self._wizard_btn.pack(side="right")
-
-        self._checklist_frame = ctk.CTkFrame(self, corner_radius=6)
-        self._checklist_frame.pack(fill="x", padx=10, pady=2)
-        self._checklist_visible = True
-        self._checklist_rows: list = []
-        self._build_checklist()
-
-        # ---- Profile editor (collapsible) ----
-        profile_header = ctk.CTkFrame(self, fg_color="transparent")
-        profile_header.pack(fill="x", padx=10, pady=(4, 0))
-
-        self._profile_toggle_btn = ctk.CTkButton(
-            profile_header, text="▼ Profile Settings", width=200, height=26,
-            fg_color="transparent", hover_color="#374151", anchor="w",
-            command=self._toggle_profile,
-        )
-        self._profile_toggle_btn.pack(side="left")
-
-        self._profile_frame = ctk.CTkFrame(self)
-        self._profile_frame.pack(fill="x", padx=10, pady=2)
-
-        self._profile_editor = ProfileEditor(
-            self._profile_frame,
-            on_profile_loaded=self._on_profile_loaded,
-        )
-        self._profile_editor.pack(fill="x", padx=2, pady=2)
-
-        # ---- Log console ----
-        log_header = ctk.CTkFrame(self, fg_color="transparent")
-        log_header.pack(fill="x", padx=10, pady=(4, 0))
-        ctk.CTkLabel(log_header, text="Log", text_color="#6b7280", font=ctk.CTkFont(size=11)).pack(side="left")
-        ctk.CTkButton(log_header, text="Clear", width=50, height=20,
-                      command=lambda: self._log_console.clear()).pack(side="right")
-
-        self._log_console = LogConsole(self)
-        self._log_console.pack(fill="both", expand=True, padx=10, pady=(0, 8))
-
-        # Load last profile on startup
-        self._profile_editor.load_last_profile()
-
-    # ------------------------------------------------------------------ #
-    # Button handlers                                                      #
-    # ------------------------------------------------------------------ #
+    # ---------------------------------------------------------------- handlers
+    def _on_profile_changed(self, profile: dict) -> None:
+        self._profile = profile
 
     def _on_start(self) -> None:
-        profile = self._profile_editor.get_active_profile()
-
-        # Run validation — block on hard failures, warn on soft ones
-        from calibration.validation import run_validation
-        report = run_validation(profile)
-
-        if not report.can_start:
-            self._show_validation_block(report)
+        from calibration.calibrator import required_complete
+        if not required_complete():
+            self._detail.configure(text="Press Detect Roblox on the Calibrate tab first.")
+            self._tabs.set("Calibrate")
             return
-
-        self._svc.start(profile)
-        self._update_button_states(running=True)
-        log.info("UI: Start pressed (profile='%s')", profile.get("name"))
-
-    def _show_validation_block(self, report) -> None:
-        """Show a blocking dialog listing what must be fixed before starting."""
-        win = ctk.CTkToplevel(self)
-        win.title("Cannot Start")
-        win.geometry("440x320")
-        win.resizable(False, False)
-        win.attributes("-topmost", True)
-        win.grab_set()
-
-        ctk.CTkLabel(win, text="Resolve these issues before starting:",
-                     font=ctk.CTkFont(size=13, weight="bold")).pack(pady=(16, 8))
-
-        frame = ctk.CTkScrollableFrame(win, height=180)
-        frame.pack(fill="x", padx=16, pady=4)
-
-        for item in report.blocking_failures:
-            row = ctk.CTkFrame(frame, fg_color="transparent")
-            row.pack(fill="x", pady=2)
-            ctk.CTkLabel(row, text="✗", text_color="#ef4444", width=20).pack(side="left")
-            ctk.CTkLabel(row, text=item.name, width=180, anchor="w").pack(side="left")
-            ctk.CTkLabel(row, text=item.fix_hint, text_color="#9ca3af",
-                         font=ctk.CTkFont(size=10), wraplength=200, justify="left").pack(side="left", padx=4)
-
-        btn_row = ctk.CTkFrame(win, fg_color="transparent")
-        btn_row.pack(pady=12)
-        ctk.CTkButton(btn_row, text="Open Calibration", width=150,
-                      command=lambda: [win.destroy(), self._open_calibration()]).pack(side="left", padx=6)
-        ctk.CTkButton(btn_row, text="Close", width=80,
-                      fg_color="#374151", command=win.destroy).pack(side="left", padx=6)
+        self._fields.save()
+        self._svc.start(self._fields.current())
 
     def _on_pause(self) -> None:
-        state = self._sm.current_state
-        if state == PAUSED:
+        if self._sm.current_state == PAUSED:
             self._svc.resume()
-            self._pause_btn.configure(text="PAUSE")
         else:
             self._svc.pause()
-            self._pause_btn.configure(text="RESUME")
 
     def _on_stop(self) -> None:
         self._svc.stop()
-        self._update_button_states(running=False)
-        self._pause_btn.configure(text="PAUSE")
-        log.info("UI: Stop pressed")
-
-    def _on_debug_toggle(self) -> None:
-        enabled = self._debug_var.get()
-        self._sm.set(debug_mode=enabled)
-        import logging
-        level = logging.DEBUG if enabled else logging.INFO
-        import logging as _l
-        _l.getLogger().setLevel(level)
-        log.info("Debug mode: %s", "ON" if enabled else "OFF")
-
-    def _open_calibration(self) -> None:
-        from calibration.auto_calibration_window import AutoCalibrationWindow
-        profile = self._profile_editor.get_active_profile()
-        AutoCalibrationWindow(self, profile)
-
-    def _open_wizard(self) -> None:
-        from calibration.setup_wizard import SetupWizard
-        SetupWizard(self)
-
-    # ------------------------------------------------------------------ #
-    # Calibration checklist                                                #
-    # ------------------------------------------------------------------ #
-
-    def _build_checklist(self) -> None:
-        for w in self._checklist_frame.winfo_children():
-            w.destroy()
-        self._checklist_rows = []
-
-        items = get_checklist()
-        for i, item in enumerate(items):
-            row = ctk.CTkFrame(self._checklist_frame, fg_color="transparent")
-            row.pack(fill="x", padx=8, pady=1)
-
-            indicator = ctk.CTkLabel(
-                row,
-                text="●",
-                font=ctk.CTkFont(size=12),
-                text_color="#22c55e" if item.ok else "#ef4444",
-                width=18,
-            )
-            indicator.pack(side="left")
-
-            ctk.CTkLabel(
-                row,
-                text=item.label,
-                font=ctk.CTkFont(size=11),
-                anchor="w",
-                width=220,
-            ).pack(side="left", padx=4)
-
-            ctk.CTkLabel(
-                row,
-                text=item.detail,
-                font=ctk.CTkFont(size=10),
-                text_color="#6b7280",
-                anchor="w",
-            ).pack(side="left")
-
-            if not item.ok:
-                fix_btn = ctk.CTkButton(
-                    row, text="Fix", width=40, height=20,
-                    fg_color="#374151", hover_color="#4b5563",
-                    font=ctk.CTkFont(size=10),
-                    command=lambda k=item.key, cat=item.category: self._fix_item(k, cat),
-                )
-                fix_btn.pack(side="right", padx=4)
-
-            self._checklist_rows.append((item, row))
-
-    def _fix_item(self, key: str, category: str) -> None:
-        """Open wizard at the relevant step, or open calibration tool."""
-        from calibration.setup_wizard import SetupWizard, _STEPS
-        for i, step in enumerate(_STEPS):
-            if step.get("key") == key:
-                SetupWizard(self, start_step=i)
-                return
-        from calibration.calibration_tool import CalibrationWindow
-        CalibrationWindow(self)
-
-    def _toggle_checklist(self) -> None:
-        if self._checklist_visible:
-            self._checklist_frame.pack_forget()
-            self._checklist_toggle_btn.configure(text="▶ Calibration Status")
-        else:
-            self._checklist_frame.pack(fill="x", padx=10, pady=2,
-                                       before=self._profile_frame)
-            self._checklist_toggle_btn.configure(text="▼ Calibration Status")
-        self._checklist_visible = not self._checklist_visible
-
-    def _refresh_checklist(self) -> None:
-        self._build_checklist()
-
-    def _toggle_profile(self) -> None:
-        if self._profile_visible:
-            self._profile_frame.pack_forget()
-            self._profile_toggle_btn.configure(text="▶ Profile Settings")
-        else:
-            self._profile_frame.pack(fill="x", padx=10, pady=2, before=self._log_console)
-            self._profile_toggle_btn.configure(text="▼ Profile Settings")
-        self._profile_visible = not self._profile_visible
-
-    def _maybe_launch_wizard(self) -> None:
-        from setup.env_checker import _check_screen_recording, _check_accessibility
-        sr = _check_screen_recording()
-        ax = _check_accessibility()
-        if sr is False or ax is False:
-            from setup.permission_checker import show_permission_guide_window
-            show_permission_guide_window(self)
-            return
-
-        from calibration.setup_wizard import should_show_wizard, SetupWizard
-        if should_show_wizard():
-            log.info("Calibration incomplete — launching setup wizard")
-            SetupWizard(self)
-
-    def _on_profile_loaded(self, profile: dict) -> None:
-        log.info("Profile loaded in UI: '%s'", profile.get("name"))
-
-    # ------------------------------------------------------------------ #
-    # UI update loop (runs in main thread via after())                    #
-    # ------------------------------------------------------------------ #
-
-    def _start_ui_update_loop(self) -> None:
-        self._update_ui()
-        self.after(5000, self._refresh_checklist_periodic)
-
-    def _update_ui(self) -> None:
-        snap = self._sm.snapshot()
-
-        # State pill
-        state = snap["current_state"]
-        color = _STATE_COLORS.get(state, "#374151")
-        self._state_pill.configure(text=f"  {state}  ", fg_color=color)
-
-        # Timer
-        self._timer_label.configure(text=_fmt_time(snap["runtime_seconds"]))
-
-        # Info grid
-        self._field_val.configure(text=snap["current_field"] or "—")
-        self._bp_val.configure(text=f"{snap['backpack_pct']}%")
-        self._wc_val.configure(text=str(snap["wealth_clock_count"]))
-        self._mob_val.configure(text=str(snap["mob_run_count"]))
-
-        self.after(500, self._update_ui)
-
-    def _refresh_checklist_periodic(self) -> None:
-        self._build_checklist()
-        self.after(5000, self._refresh_checklist_periodic)
 
     def _on_state_changed(self) -> None:
-        # Called from bg thread — schedule UI update on main thread
-        self.after(0, self._sync_button_states)
+        self.after(0, self._sync_buttons)
 
-    def _sync_button_states(self) -> None:
+    def _sync_buttons(self) -> None:
         state = self._sm.current_state
-        running = state != IDLE
-        self._update_button_states(running)
+        running = state not in (IDLE, ERROR)
+        self._start.configure(state="disabled" if running else "normal")
+        self._pause.configure(state="normal" if running else "disabled", text="RESUME" if state == PAUSED else "PAUSE")
+        self._stop.configure(state="normal" if running else "disabled")
 
-    def _update_button_states(self, running: bool) -> None:
-        if running:
-            self._start_btn.configure(state="disabled")
-            self._pause_btn.configure(state="normal")
-            self._stop_btn.configure(state="normal")
-        else:
-            self._start_btn.configure(state="normal")
-            self._pause_btn.configure(state="disabled")
-            self._stop_btn.configure(state="disabled")
-
-    # ------------------------------------------------------------------ #
-    # Close                                                                #
-    # ------------------------------------------------------------------ #
+    def _update(self) -> None:
+        snap = self._sm.snapshot()
+        state = snap["state"]
+        self._pill.configure(text=f"  {state}  ", fg_color=_STATE_COLORS.get(state, "#374151"))
+        self._timer.configure(text=_fmt_time(snap["runtime_seconds"]))
+        self._detail.configure(text=snap["detail"] or "")
+        self._cells["field"].configure(text=snap["field"] or "-")
+        self._cells["backpack_pct"].configure(text=f"{snap['backpack_pct']}%")
+        for k in ("cycles", "converts", "deaths"):
+            self._cells[k].configure(text=str(snap[k]))
+        if snap["remote_urls"] and not self._remote.get():
+            self._remote.insert(0, "  |  ".join(snap["remote_urls"]))
+        self.after(500, self._update)
 
     def _on_close(self) -> None:
         self._svc.stop()

@@ -1,58 +1,67 @@
 {
   "app": {
-    "debug_mode": false,
     "emergency_stop_key": "f9",
-    "window_width": 480,
-    "window_height": 760,
-    "theme": "dark"
+    "window_width": 560,
+    "window_height": 820,
+    "theme": "dark",
+    "first_run": true
   },
-  "detection": {
-    "backpack_pct_confidence": 0.75,
-    "template_match_threshold": 0.80,
-    "death_screen_threshold": 0.85,
-    "hive_threshold": 0.80,
-    "mob_threshold": 0.78
+  "game": {
+    "walk_speed": 28,
+    "hive_slot": 1,
+    "sprinkler_type": "none",
+    "sprinkler_slot_key": "1",
+    "travel": "walk",
+    "zoom_out_taps": 6,
+    "reset_wait_s": 2.0,
+    "death_extra_wait_s": 18.0,
+    "reset_attempts": 5,
+    "respawn_timeout_s": 12.0,
+    "convert_timeout_s": 300.0,
+    "convert_press_retry_s": 6.0,
+    "camera_search_taps": 2,
+    "camera_after_found_taps": 4,
+    "use_tool": true,
+    "backpack_sample_s": 1.0,
+    "lost_screen_s": 60.0,
+    "key_gap_s": 0.3,
+    "rot_left": ",",
+    "rot_right": ".",
+    "zoom_in": "i",
+    "zoom_out": "o",
+    "mouse_park": [0.25, 0.2]
   },
-  "timing": {
-    "ui_poll_ms": 200,
-    "watchdog_interval_sec": 30,
-    "watchdog_timeout_sec": 60,
-    "movement_loop_delay_ms": 80,
-    "click_hold_ms": 120
-  },
-  "movement": {
-    "default_pattern": "circular",
-    "base_speed": 1.0,
-    "randomness": 0.3,
-    "micro_pause_chance": 0.08,
-    "micro_pause_min_ms": 50,
-    "micro_pause_max_ms": 250
+  "hud": {
+    "calibrated": false,
+    "backpack_pixel": null,
+    "health_pixel": null,
+    "hive_prompt_region": null,
+    "hive_prompt_template": "hive_prompt.png",
+    "hive_view_region": null,
+    "hive_view_template": "hive_view.png",
+    "hive_strip_region": null,
+    "hive_strip_enabled": false,
+    "hive_strip_min_pixels": 40,
+    "cannon_prompt_template": "cannon_prompt.png",
+    "death_region": null,
+    "death_template": "",
+    "backpack_filter_size": 6,
+    "template_tolerance": 12
   },
   "screen": {
-    "scale_factor": 2.0,
-    "roblox_window_title": "Roblox",
-    "regions": {
-      "backpack_pct": {"left": 0, "top": 0, "width": 0, "height": 0},
-      "field_name": {"left": 0, "top": 0, "width": 0, "height": 0},
-      "pollen_count": {"left": 0, "top": 0, "width": 0, "height": 0}
-    }
+    "roblox_window": {"left": 0, "top": 0, "width": 0, "height": 0},
+    "use_saved_window": false
+  },
+  "remote": {
+    "enabled": true,
+    "port": 8765,
+    "token": ""
+  },
+  "timing": {
+    "watchdog_interval_sec": 30,
+    "watchdog_timeout_sec": 120
   },
   "power": {
-    "reduce_brightness_on_start": false,
-    "brightness_level": 50,
     "caffeinate": true
-  },
-  "wealth_clock": {
-    "enabled": true,
-    "interval_min": 61,
-    "reset_character": false
-  },
-  "mob_run": {
-    "enabled": true,
-    "interval_min": 64,
-    "max_retries": 3
-  },
-  "death_recovery": {
-    "backup_field_farming_min": 30
   }
 }

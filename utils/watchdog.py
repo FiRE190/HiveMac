@@ -50,7 +50,7 @@ class Watchdog:
 
     def _run(self) -> None:
         sm = get_state()
-        idle_states = {"IDLE", "PAUSED"}
+        idle_states = {"IDLE", "PAUSED", "ERROR"}
 
         while self._running:
             time.sleep(self._interval)

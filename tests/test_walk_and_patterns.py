@@ -19,9 +19,11 @@ class FakeActuator:
         self.events = []
         self.down = set()
     def key_down(self, k):
-        self.down.add(k); self.events.append(("down", k))
+        self.down.add(k)
+        self.events.append(("down", k))
     def key_up(self, k):
-        self.down.discard(k); self.events.append(("up", k))
+        self.down.discard(k)
+        self.events.append(("up", k))
     def tap(self, k, hold_s=0.03):
         self.events.append(("tap", k))
     def mouse_down(self):

@@ -21,19 +21,25 @@ class FakeActuator:
         self.down = set()
         self.mouse = False
     def key_down(self, k):
-        self.down.add(k); self.events.append(("down", k))
+        self.down.add(k)
+        self.events.append(("down", k))
     def key_up(self, k):
-        self.down.discard(k); self.events.append(("up", k))
+        self.down.discard(k)
+        self.events.append(("up", k))
     def tap(self, k, hold_s=0.03):
         self.events.append(("tap", k))
     def mouse_down(self):
-        self.mouse = True; self.events.append(("mouse", "down"))
+        self.mouse = True
+        self.events.append(("mouse", "down"))
     def mouse_up(self):
-        self.mouse = False; self.events.append(("mouse", "up"))
+        self.mouse = False
+        self.events.append(("mouse", "up"))
     def move_mouse(self, x, y):
         self.events.append(("move", x, y))
     def release_all(self):
-        self.down.clear(); self.mouse = False; self.events.append(("release",))
+        self.down.clear()
+        self.mouse = False
+        self.events.append(("release",))
     def taps(self, key):
         return [e for e in self.events if e == ("tap", key)]
 
@@ -92,7 +98,8 @@ class FakeWorld:
     def roblox_present(self):
         return True
     def backpack_raw(self):
-        self.observe_reset(); self.advance()
+        self.observe_reset()
+        self.advance()
         return None if self.unreadable else int(round(self.backpack / 5.0) * 5)
     def backpack_percent(self):
         raw = self.backpack_raw()
@@ -102,10 +109,12 @@ class FakeWorld:
     def reset_backpack_filter(self):
         self.filter_resets += 1
     def health_grey(self):
-        self.observe_reset(); self.advance()
+        self.observe_reset()
+        self.advance()
         return self.dead
     def hive_prompt_visible(self):
-        self.observe_reset(); self.advance()
+        self.observe_reset()
+        self.advance()
         if self.hive_prompt is None:
             return None
         if self.at_hive and self.converting_since is None and ("tap", "e") in self.act.events[-3:]:
@@ -202,7 +211,8 @@ def test_gather_stops_at_backpack_target_and_releases_tool():
 
 def test_gather_stops_on_time_limit():
     g, world, act, clock = make_game(world_kwargs={"fill_per_s": 0.1})
-    g.reset_to_hive(); g.convert()
+    g.reset_to_hive()
+    g.convert()
     f = FieldConfig.from_dict({"name": "sunflower", "backpack_percent": 95, "minutes": 0.5})
     g.travel_to(f)
     res = g.gather(f)
