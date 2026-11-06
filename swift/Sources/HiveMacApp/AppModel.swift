@@ -64,6 +64,9 @@ final class AppModel: ObservableObject {
     @Published var profile = Profile()
     @Published var runs: [RunEntry] = []
     @Published var mobTimers = MobTimers()
+    @Published var recording = false
+    @Published var calibMessage: String?
+    private let keyRecorder = KeyRecorder()
     @Published var remoteOn = false
     @Published var remoteURL = ""
     @Published var remoteMessage: String?
@@ -263,6 +266,73 @@ final class AppModel: ObservableObject {
         state = s; detail = d
         if s == .gathering || s == .traveling { currentField = d.split(separator: " ").first.map(String.init) ?? currentField }
         if !d.isEmpty { append("\(s.label): \(d)") }
+    }
+
+    // MARK: Calibration tools: record a walk, capture a picture
+    func userWalkURL(kind: String, field: String) -> URL {
+        dirs.userPaths.appendingPathComponent("\(kind)/\(Paths.fieldSlug(field)).json")
+    }
+
+    func toggleRecording(kind: String, field: String) {
+        if !recording {
+            guard !running else { calibMessage = "Stop the macro first."; return }
+            guard Permissions.inputMonitoring else {
+                Permissions.requestInputMonitoring()
+                calibMessage = "Turn on Input Monitoring for HiveMac in System Settings, then reopen HiveMac. It is only used to record walks."
+                return
+            }
+            keyRecorder.start(); recording = true
+            calibMessage = kind == "to_field" ? "Recording. Walk from the hive to the field, then press Stop where gathering should start."
+                                              : "Recording. Walk from the field back to the hive, then press Stop at the hive."
+            return
+        }
+        let events = keyRecorder.stop(); recording = false
+        let speed = store.double("game.walk_speed", 28)
+        let steps = Recorder.steps(from: events, walkSpeed: speed)
+        guard !steps.isEmpty else { calibMessage = "Nothing recorded."; return }
+        var file = PathFile(name: Paths.fieldSlug(field), steps: steps)
+        file.source = "recorded in HiveMac"; file.walkSpeed = speed
+        do {
+            try file.save(to: userWalkURL(kind: kind, field: field))
+            calibMessage = "Saved your walk for \(field.capitalized) (\(steps.count) steps). It replaces Natro's."
+        } catch { calibMessage = "Could not save: \(error.localizedDescription)" }
+    }
+
+    func removeUserWalk(kind: String, field: String) {
+        let u = userWalkURL(kind: kind, field: field)
+        if FileManager.default.fileExists(atPath: u.path) {
+            try? FileManager.default.removeItem(at: u)
+            calibMessage = "Removed your walk for \(field.capitalized). Natro's walk is used again."
+        } else { calibMessage = "No walk of your own for \(field.capitalized). Natro's is already used." }
+    }
+
+    /// The Roblox window right now, for picking a picture out of it.
+    func snapshotRoblox() -> RGBImage? {
+        let mode = store.string("game.window_mode", "windowed"), bar = store.int("game.title_bar_height", 28)
+        guard let w = WindowFinder.contentBounds(mode: mode, titleBar: bar) else { return nil }
+        return capture.grab(w)
+    }
+
+    /// Saves the chosen rectangle (in snapshot pixels) as a template and points the HUD at it.
+    func saveTemplate(key: String, from snapshot: RGBImage, x: Int, y: Int, w: Int, h: Int) {
+        guard let crop = snapshot.cropped(x: x, y: y, width: w, height: h), crop.width >= 4, crop.height >= 4 else {
+            calibMessage = "That area is too small."; return
+        }
+        let name = "\(key).png"
+        guard ScreenCapture.savePNG(crop, to: dirs.templates.appendingPathComponent(name)) else { calibMessage = "Could not save the picture."; return }
+        store.set("hud.\(key)_template", name)
+        if key != "cannon_prompt" {                                        // the cannon prompt looks in the hive prompt area
+            let pad = 24
+            let rx = max(0, x - pad), ry = max(0, y - pad)
+            let rw = min(snapshot.width - rx, w + 2 * pad), rh = min(snapshot.height - ry, h + 2 * pad)
+            store.set("hud.\(key)_region", ["fx": Double(rx) / Double(snapshot.width), "fy": Double(ry) / Double(snapshot.height),
+                                             "fw": Double(rw) / Double(snapshot.width), "fh": Double(rh) / Double(snapshot.height)])
+        }
+        store.set("hud.calibrated", true)
+        try? store.save()
+        calibMessage = "Saved \(name) (\(crop.width) by \(crop.height))."
+        append("Calibrate: saved \(name)")
+        refreshLive()
     }
 
     // MARK: Phone remote

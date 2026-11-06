@@ -18,7 +18,6 @@ Wealth clock (1 h), honey and treat dispensers (1 h), blueberry, strawberry and 
 field boosters (45 min), honeystorm (4 h), ant pass (2 h), robo pass (22 h), daily honey leaderboard.
 
 ## Port from the Python app
-- Calibration tools: record a walk, template capture.
 - Hive profile outputs: recommended fields per colour and an estimate per field (labelled estimate).
 
 ## Future idea (not scoped, maybe too much for now)

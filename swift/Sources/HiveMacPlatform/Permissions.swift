@@ -34,7 +34,12 @@ public enum Permissions {
         }
     }
 
+    /// Only needed to record a walk (HiveMac listens to your keys while you walk). Playing a run does not need it.
+    public static var inputMonitoring: Bool { CGPreflightListenEventAccess() }
+    public static func requestInputMonitoring() { _ = CGRequestListenEventAccess() }
+
     public enum Pane: String {
+        case inputMonitoring = "Privacy_ListenEvent"
         case screenRecording = "Privacy_ScreenCapture"
         case accessibility = "Privacy_Accessibility"
     }

@@ -1,6 +1,7 @@
 import SwiftUI
 import AppKit
 import HiveMacCore
+import HiveMacPlatform
 
 /// The app itself: permissions, stop key, updates, data. The macro's own settings are in the Macro tab.
 struct AppSettingsView: View {
@@ -24,6 +25,8 @@ struct AppSettingsView: View {
                                   why: "Lets HiveMac read the backpack and health bars.", pane: .screenRecording)
                     PermissionRow(title: "Accessibility", ok: model.permissions.accessibility,
                                   why: "Lets HiveMac press keys.", pane: .accessibility)
+                    PermissionRow(title: "Input Monitoring", ok: Permissions.inputMonitoring,
+                                  why: "Only for recording walks. Playing a run does not need it.", pane: .inputMonitoring)
                     HStack(spacing: Theme.s3) {
                         Button("Check again") { model.refreshPermissions() }.buttonStyle(QuietButtonStyle())
                         Text("After turning one on, quit and reopen HiveMac.").font(Theme.caption).foregroundStyle(Theme.dust)

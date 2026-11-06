@@ -10,6 +10,15 @@ public struct RGBImage: Equatable, Sendable {
         self.width = width; self.height = height; self.pixels = pixels
     }
 
+    /// The part inside a rectangle, clipped to the image. nil when nothing is left.
+    public func cropped(x: Int, y: Int, width w: Int, height h: Int) -> RGBImage? {
+        let x0 = max(0, x), y0 = max(0, y), x1 = min(width, x + w), y1 = min(height, y + h)
+        guard x1 > x0, y1 > y0 else { return nil }
+        var out = [UInt8](); out.reserveCapacity((x1 - x0) * (y1 - y0) * 3)
+        for row in y0..<y1 { out += pixels[(row * width + x0) * 3 ..< (row * width + x1) * 3] }
+        return RGBImage(width: x1 - x0, height: y1 - y0, pixels: out)
+    }
+
     public init(width: Int, height: Int, fill: (r: UInt8, g: UInt8, b: UInt8)) {
         self.init(width: width, height: height,
                   pixels: (0..<(width * height)).flatMap { _ in [fill.r, fill.g, fill.b] })
