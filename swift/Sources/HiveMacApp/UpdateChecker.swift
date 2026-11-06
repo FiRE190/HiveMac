@@ -11,7 +11,7 @@ final class UpdateChecker: ObservableObject {
         case unavailable(String)
     }
 
-    static let repo = "FiRE190/HiveMac"
+    static let repo = "jonathanbrantner/HiveMac"
     private static let autoKey = "checkForUpdatesOnLaunch"
 
     @Published var status: Status = .idle

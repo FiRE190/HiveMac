@@ -1,6 +1,6 @@
 # HiveMac
 
-[![check](https://github.com/FiRE190/HiveMac/actions/workflows/check.yml/badge.svg)](https://github.com/FiRE190/HiveMac/actions/workflows/check.yml)
+[![check](https://github.com/jonathanbrantner/HiveMac/actions/workflows/check.yml/badge.svg)](https://github.com/jonathanbrantner/HiveMac/actions/workflows/check.yml)
 ![status: beta](https://img.shields.io/badge/status-beta-f2b134)
 ![macOS 14+](https://img.shields.io/badge/macOS-14%2B-lightgrey)
 
@@ -55,7 +55,7 @@ how long to stay on each, and press Start.
 There is no download yet. Build it yourself:
 
 ```sh
-git clone https://github.com/FiRE190/HiveMac.git
+git clone https://github.com/jonathanbrantner/HiveMac.git
 cd HiveMac/swift
 scripts/make-app.sh
 open build/HiveMac.app            # or copy it to /Applications
