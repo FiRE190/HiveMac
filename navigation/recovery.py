@@ -26,7 +26,6 @@ import threading
 import time
 from typing import Optional
 
-from navigation.types import LandmarkReading
 from utils.logger import get_logger
 
 log = get_logger(__name__)

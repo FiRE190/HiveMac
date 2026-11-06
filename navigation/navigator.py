@@ -35,7 +35,7 @@ import threading
 import time
 from typing import Optional
 
-from navigation.types import NavEdge, NavPlan, EdgeStatus
+from navigation.types import NavEdge, NavPlan
 from navigation.nav_map import get_nav_map
 from navigation.path_planner import get_path_planner
 from navigation.localizer import get_localizer
@@ -47,7 +47,7 @@ from navigation.checkpoint_validator import get_checkpoint_validator
 from navigation.route_telemetry import get_route_telemetry
 from navigation.route_graph import get_route_graph
 from navigation.edge_calibration import get_edge_calibration
-from navigation.route_fsm import RouteFSM, RouteFSMState
+from navigation.route_fsm import RouteFSM
 from navigation.anchor_registry import get_anchor_registry
 from navigation.recovery_arbiter import get_recovery_arbiter
 from navigation.navigation_arbiter import (

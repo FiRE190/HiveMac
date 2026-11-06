@@ -31,7 +31,7 @@ from __future__ import annotations
 
 import threading
 from dataclasses import dataclass, field
-from enum import Enum, auto
+from enum import Enum
 from typing import Dict, List, Optional, Tuple
 
 from utils.logger import get_logger

@@ -19,8 +19,7 @@ from __future__ import annotations
 
 import threading
 import time
-from dataclasses import dataclass
-from typing import List, Optional, Tuple
+from typing import List, Optional
 
 from navigation.primitives.base import BasePrimitive, PrimitiveResult, TerminalReason
 from execution.input_interface import get_input

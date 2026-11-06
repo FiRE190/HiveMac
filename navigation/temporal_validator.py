@@ -46,7 +46,7 @@ import statistics
 import threading
 import time
 from dataclasses import dataclass, field
-from typing import Deque, List, Optional
+from typing import Deque, List
 from collections import deque
 
 from navigation.checkpoint_validator import get_checkpoint_validator

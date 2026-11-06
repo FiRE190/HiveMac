@@ -6,9 +6,7 @@ the user must do it manually. This module detects the current state,
 opens the correct System Settings pane, and provides exact instructions.
 """
 import subprocess
-import sys
 import threading
-import time
 from typing import Optional
 
 from utils.logger import get_logger

@@ -32,7 +32,7 @@ from __future__ import annotations
 
 import threading
 import time
-from enum import Enum, auto
+from enum import Enum
 from typing import Optional
 
 from navigation.camera import get_camera

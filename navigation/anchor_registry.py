@@ -31,7 +31,7 @@ Public API:
 from __future__ import annotations
 
 import threading
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Dict, List, Optional, Set
 
 from utils.logger import get_logger

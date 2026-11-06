@@ -43,8 +43,8 @@ from __future__ import annotations
 import threading
 import time
 from dataclasses import dataclass
-from enum import Enum, auto
-from typing import Optional
+from enum import Enum
+from typing import Dict, Optional
 
 from navigation.anchor_registry import get_anchor_registry
 from navigation.checkpoint_validator import get_checkpoint_validator

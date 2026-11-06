@@ -26,7 +26,7 @@ import threading
 import time
 from collections import deque
 from dataclasses import dataclass, field
-from typing import Deque, Dict, Optional, Tuple
+from typing import Deque, Dict, Optional
 
 from utils.logger import get_logger
 

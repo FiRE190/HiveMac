@@ -24,7 +24,6 @@ Public API:
 from __future__ import annotations
 
 import threading
-import time
 from typing import Dict, List, Optional
 
 from navigation.types import LandmarkReading, PositionEstimate

@@ -9,8 +9,6 @@ Runs a sequence of detection passes to minimize manual input:
 
 Returns an AutoCalibResult with per-step success flags and confidence.
 """
-import time
-import threading
 from dataclasses import dataclass, field
 from typing import Optional, Callable
 

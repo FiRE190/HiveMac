@@ -6,7 +6,6 @@ and returns a structured report.  The UI gates the Start button on
 validation passing (or user explicitly overriding warnings).
 """
 from dataclasses import dataclass, field
-from typing import Optional
 
 from utils.logger import get_logger
 

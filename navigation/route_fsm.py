@@ -38,7 +38,7 @@ from __future__ import annotations
 import time
 import threading
 from dataclasses import dataclass, field
-from enum import Enum, auto
+from enum import Enum
 from typing import Callable, Dict, List, Optional
 
 from navigation.types import NavEdge, EdgeStatus
@@ -49,7 +49,7 @@ from navigation.edge_calibration import get_edge_calibration
 from navigation.recovery_arbiter import get_recovery_arbiter
 from navigation.navigation_arbiter import EDGE_UNRELIABLE_THRESHOLD, EDGE_MARGINAL_THRESHOLD
 from navigation.temporal_validator import TemporalValidator
-from planning.recovery_manager import get_recovery_manager, RecoveryLevel, RecoveryResult
+from planning.recovery_manager import get_recovery_manager, RecoveryLevel
 from utils.logger import get_logger
 
 log = get_logger(__name__)

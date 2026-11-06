@@ -22,12 +22,11 @@ from __future__ import annotations
 import random
 import threading
 import time
-from dataclasses import dataclass, field
-from typing import Generator, Optional, Tuple
+from dataclasses import dataclass
+from typing import Generator, Optional
 
 from detection.screen_capture import get_screen_capture
 from movement.position_detector import FieldBoundaryDetector, MovementDelta, PositionDetector
-from movement.randomizer import micro_pause
 from movement.speed_calibrator import SpeedCalibrator
 from utils.logger import get_logger
 

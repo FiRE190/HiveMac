@@ -10,11 +10,10 @@ import pyautogui
 
 from tasks.base_task import BaseTask
 from navigation.route_manager import get_route_manager
-from navigation.navigator import get_navigator
 from movement.randomizer import human_sleep
-from detection.hive_detector import is_at_hive, is_hive_converting
+from detection.hive_detector import is_at_hive
 from detection.backpack_detector import get_backpack_pct
-from state.fsm import FSM, CONVERTING_POLLEN, FARMING
+from state.fsm import FSM, CONVERTING_POLLEN
 from utils.logger import get_logger
 
 log = get_logger(__name__)

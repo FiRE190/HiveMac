@@ -2,7 +2,6 @@
 OpenCV template matching with multi-scale support for Retina displays.
 Returns (found, center_xy, confidence) for any template search.
 """
-import os
 from pathlib import Path
 from typing import Optional
 

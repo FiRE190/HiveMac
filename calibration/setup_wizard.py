@@ -12,11 +12,10 @@ and accessible from the main window's Calibrate button at any time.
 import threading
 import time
 from pathlib import Path
-from typing import Optional
 
 import customtkinter as ctk
 
-from calibration.checklist import get_checklist, CheckItem, KNOWN_FIELD_KEYS
+from calibration.checklist import get_checklist
 from calibration.coordinate_recorder import CoordinateRecorder
 from calibration.region_picker import RegionPicker
 from utils.logger import get_logger

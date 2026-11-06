@@ -4,21 +4,17 @@ regions, capturing templates, and testing movement patterns.
 
 Opened from the main window's Calibration button.
 """
-import json
 import threading
 import time
 from pathlib import Path
-from typing import Optional
 
 import customtkinter as ctk
-from PIL import Image, ImageTk
 
 from calibration.coordinate_recorder import CoordinateRecorder
 from detection.screen_capture import get_screen_capture
 from ocr.ocr_manager import get_ocr
 from movement.movement_controller import get_movement_controller
 from movement.patterns import PatternFactory
-from config.config_manager import get_config
 from utils.logger import get_logger
 
 log = get_logger(__name__)

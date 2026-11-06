@@ -27,7 +27,7 @@ Run the calibration tool → Regions → backpack_pct to define the region.
 from __future__ import annotations
 
 import threading
-from typing import Tuple
+from typing import Optional, Tuple
 
 import numpy as np
 

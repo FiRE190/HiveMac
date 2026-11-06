@@ -44,7 +44,7 @@ import copy
 import threading
 import time
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional
+from typing import Dict, Optional
 
 from navigation.anchor_registry import get_anchor_registry
 from utils.rolling_window import EMA

@@ -31,7 +31,7 @@ from __future__ import annotations
 import math
 import threading
 import time
-from typing import Optional, Tuple
+from typing import Optional
 
 from detection.screen_capture import get_screen_capture
 from movement.position_detector import PositionDetector

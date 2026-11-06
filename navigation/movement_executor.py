@@ -31,11 +31,11 @@ from __future__ import annotations
 
 import threading
 import time
-from typing import List, Optional, Tuple
+from typing import List, Optional
 
 from navigation.types import NavEdge, EdgeMethod, EdgeResult, EdgeStatus, TerrainHint
 from movement.terrain_estimator import TerrainEstimator, TerrainType
-from movement.position_detector import PositionDetector, MovementDelta
+from movement.position_detector import PositionDetector
 from detection.screen_capture import get_screen_capture
 from utils.logger import get_logger
 

@@ -25,7 +25,7 @@ import time
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from enum import Enum, auto
-from typing import Dict, Optional
+from typing import Dict
 
 
 class TerminalReason(Enum):

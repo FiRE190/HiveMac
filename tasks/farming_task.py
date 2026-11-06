@@ -10,8 +10,6 @@ rather than fixed timers or blind waypoint scripts.  The controller:
 Backpack and death checks remain on their iteration cadence and are
 entirely independent of the movement layer.
 """
-import time
-import threading
 
 import pyautogui
 

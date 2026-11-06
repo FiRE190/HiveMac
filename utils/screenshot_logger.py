@@ -2,7 +2,6 @@
 Saves annotated debug screenshots to the debug/ directory.
 Called automatically on errors, watchdog timeouts, and emergency stops.
 """
-import os
 import time
 from pathlib import Path
 from typing import Optional
@@ -52,7 +51,7 @@ def log_error_screenshot(context: str = "error") -> Optional[str]:
 
 def _annotate_and_save(img, path: Path, context: str) -> None:
     """Add a timestamp and context label to the screenshot."""
-    from PIL import ImageDraw, ImageFont
+    from PIL import ImageDraw
     draw = ImageDraw.Draw(img)
     label = f"{context}  {time.strftime('%Y-%m-%d %H:%M:%S')}"
     draw.rectangle([0, 0, len(label) * 7 + 10, 22], fill=(200, 0, 0, 180))

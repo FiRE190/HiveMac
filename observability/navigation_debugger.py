@@ -21,7 +21,7 @@ import logging
 import threading
 import time
 from dataclasses import dataclass, field, asdict
-from typing import Any, Dict, List, Optional
+from typing import Dict, List, Optional
 
 from navigation.anchor_registry import get_anchor_registry
 from navigation.camera_state import get_camera_state_manager

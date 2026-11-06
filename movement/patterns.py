@@ -12,7 +12,7 @@ Usage:
 import math
 import random
 from abc import ABC, abstractmethod
-from typing import Generator, Iterator
+from typing import Iterator
 
 
 class MovementPattern(ABC):

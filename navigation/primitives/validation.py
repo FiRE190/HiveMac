@@ -18,7 +18,6 @@ Returns PrimitiveResult:
 from __future__ import annotations
 
 import threading
-from typing import Optional
 
 from navigation.primitives.base import BasePrimitive, PrimitiveResult, TerminalReason
 from navigation.checkpoint_validator import get_checkpoint_validator

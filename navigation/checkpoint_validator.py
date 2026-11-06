@@ -48,7 +48,7 @@ from typing import Dict, Optional
 
 import numpy as np
 
-from navigation.anchor_registry import get_anchor_registry, AnchorDefinition
+from navigation.anchor_registry import get_anchor_registry
 from perception.fusion_engine import get_fusion_engine, FusionResult
 from perception.frame_manager import get_frame_manager
 from perception.template_system import get_template_system
