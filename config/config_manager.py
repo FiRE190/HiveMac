@@ -7,8 +7,10 @@ import threading
 from pathlib import Path
 from typing import Any
 
+from utils import appdirs
+
 _DEFAULTS_PATH = Path(__file__).parent / "default_config.json"
-_USER_CONFIG_PATH = Path(__file__).parent / "settings.json"
+_USER_CONFIG_PATH = appdirs.settings_path()
 
 
 def _deep_merge(base: dict, override: dict) -> dict:

@@ -5,15 +5,16 @@ small and testable where they do not touch the screen.
 """
 from __future__ import annotations
 
-from pathlib import Path
 from typing import Optional
 
 from calibration.layout import RelPoint, RelRegion, WindowBounds, natro_defaults
 from config.config_manager import get_config
+from utils import appdirs
 from utils.logger import get_logger
 
 log = get_logger(__name__)
-TEMPLATES_DIR = Path(__file__).resolve().parent.parent / "templates"
+
+TEMPLATES_DIR = appdirs.templates_dir()
 
 ADJUST = [
     ("backpack_pixel", "Backpack pixel"),

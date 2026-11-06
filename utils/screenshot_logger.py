@@ -1,12 +1,13 @@
 """Saves a debug screenshot of the Roblox window (or the screen) to debug/."""
 import time
-from pathlib import Path
 from typing import Optional
 
+from utils import appdirs
 from utils.logger import get_logger
 
 log = get_logger(__name__)
-_DEBUG_DIR = Path(__file__).parent.parent / "debug"
+
+_DEBUG_DIR = appdirs.debug_dir()
 
 
 def log_error_screenshot(context: str = "error") -> Optional[str]:

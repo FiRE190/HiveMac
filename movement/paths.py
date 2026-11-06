@@ -28,8 +28,10 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Iterable, Iterator
 
+from utils import appdirs
+
 PATHS_DIR = Path(__file__).resolve().parent.parent / "config" / "paths"
-USER_PATHS_DIR = PATHS_DIR / "user"
+USER_PATHS_DIR = appdirs.user_paths_dir()
 
 ABSTRACT_KEYS = ("tc_fb", "afc_fb", "tc_lr", "afc_lr")
 NATRO_KEYS = {"FwdKey": "w", "BackKey": "s", "LeftKey": "a", "RightKey": "d",

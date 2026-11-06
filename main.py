@@ -14,14 +14,41 @@ ROOT = Path(__file__).parent
 sys.path.insert(0, str(ROOT))
 
 
+def _set_app_name() -> None:
+    """Menu bar shows the process name; inside the app bundle make it HiveMac, not Python."""
+    try:
+        from Foundation import NSBundle
+        info = NSBundle.mainBundle().infoDictionary()
+        info["CFBundleName"] = "HiveMac"
+    except Exception:
+        pass
+
+
+def _set_app_icon() -> None:
+    """Dock icon from the bundle's icns (the Python process would show the Python rocket)."""
+    icon = ROOT.parent / "HiveMac.icns"
+    if not icon.exists():
+        return
+    try:
+        from AppKit import NSApplication, NSImage
+        img = NSImage.alloc().initWithContentsOfFile_(str(icon))
+        if img is not None:
+            NSApplication.sharedApplication().setApplicationIconImage_(img)
+    except Exception:
+        pass
+
+
 def main() -> None:
+    _set_app_name()
     from setup.auto_setup import run_full_setup
     run_full_setup()
 
+    from utils import appdirs
     from utils.logger import get_logger, init_logging
-    init_logging(str(ROOT / "logs"))
+    from utils.version import app_version
+    init_logging(str(appdirs.logs_dir()))
     log = get_logger("main")
-    log.info("HiveMac starting")
+    log.info("HiveMac %s starting (data in %s)", app_version(), appdirs.data_dir())
 
     from setup.env_checker import check_all, print_report
     status = check_all()
@@ -40,6 +67,7 @@ def main() -> None:
 
     from ui.main_window import MainWindow
     window = MainWindow(service)
+    _set_app_icon()
     window.mainloop()
 
     watchdog.stop()

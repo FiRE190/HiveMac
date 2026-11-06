@@ -36,7 +36,8 @@ class MainWindow(ctk.CTk):
         self._shown: dict = {}
         ctk.set_appearance_mode("dark")
         ctk.set_default_color_theme("dark-blue")
-        self.title("HiveMac")
+        from utils.version import app_version
+        self.title(f"HiveMac {app_version()}")
         self.geometry("620x840")
         self.minsize(600, 700)
         self.protocol("WM_DELETE_WINDOW", self._on_close)

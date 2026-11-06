@@ -12,18 +12,19 @@ Calibration lives in config under `hud`:
 """
 from __future__ import annotations
 
-from pathlib import Path
 from typing import Optional
 
 import numpy as np
 
 from calibration.layout import RelPoint, RelRegion, WindowBounds
 from detection import hud
+from utils import appdirs
 from utils.logger import get_logger
 
 log = get_logger(__name__)
 
-TEMPLATES_DIR = Path(__file__).resolve().parent.parent / "templates"
+
+TEMPLATES_DIR = appdirs.templates_dir()
 
 
 def load_template(name: str) -> Optional[np.ndarray]:
