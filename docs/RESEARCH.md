@@ -1,5 +1,17 @@
 # Research: how Natro Macro and the other open macros actually work
 
+> **Correction (2026-11-05, read from Natro's source after Jonathan pointed it out).** The
+> sections below say Natro resets instead of walking back. That is wrong as a default.
+> `natro_macro.ahk` gives all 17 fields `"convert", "Walk"` (field table, lines 1586 to 1826);
+> the per field `FieldReturnType` is `Walk` or `Reset`. Walk = `nm_walkFrom(field)` (the 17
+> `paths/wf-*.ahk` routes) then `nm_convert()` at the hive, which presses E at the make honey
+> prompt and loops until the filtered backpack reads 0 (cap 5 minutes). Reset is the optional
+> alternative: no walk, and the next `nm_Reset(convert=1)` respawns at the hive and converts.
+> Whether Esc, R, Enter empties the backpack is not settled; Natro converting after a reset
+> suggests the pollen survives, Jonathan believes it goes to zero. Test once in the game.
+> HiveMac now defaults to Walk, with all 17 walk back routes converted.
+
+
 Written 2026-11-05 from reading the source, not the READMEs. Natro Macro was cloned at
 its current `main` (23,029 line `submacros/natro_macro.ahk` plus `lib/`, `paths/`,
 `patterns/`, `submacros/background.ahk`). Line numbers below refer to that checkout.

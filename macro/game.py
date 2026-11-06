@@ -93,7 +93,7 @@ class FieldConfig:
     sprinkler_distance: int = 1
     shift_lock: bool = False
     travel: str = "default"       # default, walk, cannon
-    return_method: str = "reset"  # reset, walk
+    return_method: str = "walk"   # walk (Natro default, converts at the hive), reset
     enabled: bool = True
 
     @staticmethod
@@ -114,7 +114,7 @@ class FieldConfig:
         f.sprinkler_distance = int(d.get("sprinkler_distance", base.get("distance", 1)))
         f.shift_lock = bool(d.get("shift_lock", False))
         f.travel = str(d.get("travel", "default"))
-        f.return_method = str(d.get("return_method", "reset"))
+        f.return_method = str(d.get("return_method", "walk"))
         f.enabled = bool(d.get("enabled", True))
         return f
 

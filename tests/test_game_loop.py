@@ -235,8 +235,8 @@ def test_death_during_gather_then_loop_resets_with_extra_wait():
 
 def test_loop_rotates_fields_and_stop_event_ends_it():
     g, world, act, clock = make_game(world_kwargs={"fill_per_s": 50.0})
-    f1 = FieldConfig.from_dict({"name": "sunflower", "backpack_percent": 90})
-    f2 = FieldConfig.from_dict({"name": "dandelion", "backpack_percent": 90})
+    f1 = FieldConfig.from_dict({"name": "sunflower", "backpack_percent": 90, "return_method": "reset"})
+    f2 = FieldConfig.from_dict({"name": "dandelion", "backpack_percent": 90, "return_method": "reset"})
     f3 = FieldConfig.from_dict({"name": "clover", "enabled": False})
     loop = FarmLoop(g, [f1, f2, f3], max_cycles=3)
     assert [f.name for f in loop.fields] == ["sunflower", "dandelion"]
@@ -247,6 +247,25 @@ def test_loop_rotates_fields_and_stop_event_ends_it():
 
     g.stop_event.set()
     assert FarmLoop(g, [f1]).run() == "stopped"
+
+
+def test_walk_is_the_default_return_and_converts_at_the_hive():
+    g, world, act, clock = make_game(world_kwargs={"fill_per_s": 50.0})
+    f = FieldConfig.from_dict({"name": "sunflower", "backpack_percent": 90})
+    assert f.return_method == "walk"
+    loop = FarmLoop(g, [f], max_cycles=1)
+    assert loop.run() == "cycles_done"
+    traveled = [d for s, d in g.statuses if s == "traveling"]
+    assert traveled == ["sunflower", "hive"]          # out to the field, then walked back
+    assert loop.stats.converts == 1                   # the bag starts empty, so only the walk back converts
+
+
+def test_reset_return_never_walks_back():
+    g, world, act, clock = make_game(world_kwargs={"fill_per_s": 50.0})
+    f = FieldConfig.from_dict({"name": "sunflower", "backpack_percent": 90, "return_method": "reset"})
+    loop = FarmLoop(g, [f], max_cycles=1)
+    assert loop.run() == "cycles_done"
+    assert [d for s, d in g.statuses if s == "traveling"] == ["sunflower"]
 
 
 def test_loop_gives_up_after_repeated_reset_failures():

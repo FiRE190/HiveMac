@@ -31,7 +31,10 @@
     "rot_right": ".",
     "zoom_in": "i",
     "zoom_out": "o",
-    "mouse_park": [0.25, 0.2]
+    "mouse_park": [
+      0.25,
+      0.2
+    ]
   },
   "hud": {
     "calibrated": false,
@@ -51,7 +54,12 @@
     "template_tolerance": 12
   },
   "screen": {
-    "roblox_window": {"left": 0, "top": 0, "width": 0, "height": 0},
+    "roblox_window": {
+      "left": 0,
+      "top": 0,
+      "width": 0,
+      "height": 0
+    },
     "use_saved_window": false
   },
   "remote": {
@@ -65,5 +73,12 @@
   },
   "power": {
     "caffeinate": true
+  },
+  "hive": {
+    "color": "mixed",
+    "bee_count": 50,
+    "avg_bee_level": 10,
+    "cub_buddy": false,
+    "backpack_percent": 90
   }
 }

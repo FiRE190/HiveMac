@@ -36,7 +36,7 @@ class FieldRow(ctk.CTkFrame):
         self.v_size = ctk.StringVar(value=str(d.get("size") or _D))
         self.v_width = ctk.StringVar(value=str(d.get("width") or ""))
         self.v_travel = ctk.StringVar(value=d.get("travel", "default"))
-        self.v_ret = ctk.StringVar(value=d.get("return_method", "reset"))
+        self.v_ret = ctk.StringVar(value=d.get("return_method", "walk"))
         self.v_shift = ctk.BooleanVar(value=d.get("shift_lock", False))
         self.v_camera = ctk.StringVar(value=d.get("camera") or _D)
         self.v_turns = ctk.StringVar(value=str(d.get("turns") or ""))

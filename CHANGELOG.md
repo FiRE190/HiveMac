@@ -2,6 +2,10 @@
 
 ## 0.1.0 (unreleased)
 
+- Return to the hive now defaults to walking, like Natro (all 17 walk back routes converted; the
+  converter handles Natro's loops, hive slot switches and bee count branches). Reset stays a per field option.
+- Hive profile defaults added (colour, bee count 50, average bee level, Cub Buddy, backpack percent).
+
 First packaged version, rebuilt the Natro way.
 
 - Loop: reset to the hive, convert, replay a recorded walk to the field, gather in a

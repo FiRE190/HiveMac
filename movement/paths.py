@@ -35,7 +35,8 @@ USER_PATHS_DIR = appdirs.user_paths_dir()
 
 ABSTRACT_KEYS = ("tc_fb", "afc_fb", "tc_lr", "afc_lr")
 NATRO_KEYS = {"FwdKey": "w", "BackKey": "s", "LeftKey": "a", "RightKey": "d",
-              "TCFBKey": "tc_fb", "AFCFBKey": "afc_fb", "TCLRKey": "tc_lr", "AFCLRKey": "afc_lr"}
+              "TCFBKey": "tc_fb", "AFCFBKey": "afc_fb", "TCLRKey": "tc_lr", "AFCLRKey": "afc_lr",
+              "SC_Space": "space", "SC_E": "e"}
 
 
 @dataclass
@@ -245,6 +246,80 @@ def _eval_number(expr: str) -> float:
     return float(eval(expr, {"__builtins__": {}}, {}))  # noqa: S307 arithmetic only, validated above
 
 
+def _strip_natro_comments(text: str) -> str:
+    out = []
+    for raw in text.lstrip("\ufeff").replace("\r", "").splitlines():
+        out.append(raw.split(";", 1)[0].rstrip())
+    return "\n".join(out)
+
+
+def _match_brace(text: str, open_idx: int) -> int:
+    """Index of the '}' that closes the '{' at open_idx. Braces inside quoted strings
+    (Natro writes send "{" RotLeft " 2}") do not count."""
+    depth, in_str = 0, False
+    for i in range(open_idx, len(text)):
+        c = text[i]
+        if c == '"':
+            in_str = not in_str
+        elif not in_str:
+            if c == "{":
+                depth += 1
+            elif c == "}":
+                depth -= 1
+                if depth == 0:
+                    return i
+    raise ValueError("unbalanced braces in Natro path")
+
+
+_RE_LOOP = re.compile(r"^[ \t]*loop[ \t]+(\d+)[ \t]*\n?[ \t]*\{", re.I | re.M)
+_RE_SWITCH_SLOT = re.compile(r"^[ \t]*switch[ \t]+HiveSlot[ \t]*\n?[ \t]*\{", re.I | re.M)
+_RE_IF_BEES = re.compile(r"^[ \t]*if\b[^\n{]*hivebees[^\n{]*\{", re.I | re.M)
+_RE_DEFAULT = re.compile(r"^[ \t]*default[ \t]*:", re.I | re.M)
+
+
+def _flatten_natro(text: str) -> str:
+    """Reduce Natro's control flow to straight line code the line parser understands.
+
+    - `Loop N { body }` repeats the body N times.
+    - `switch HiveSlot { case 3: ... default: ... }` keeps the default branch. It is valid
+      for every hive slot; case 3 is only a shortcut for slot 3.
+    - `if (... HiveBees ...) { A } else { B }` keeps A, the plain walking branch. It needs no
+      glider or cannon and works at any bee count; B is the faster route for strong hives.
+    The `if (MoveMethod = "Cannon")` branches of the to-field paths stay for the parser.
+    """
+    text = _strip_natro_comments(text)
+    while True:
+        m = _RE_LOOP.search(text)
+        if m:
+            o = m.end() - 1
+            c = _match_brace(text, o)
+            body = _flatten_natro(text[o + 1:c])
+            text = text[:m.start()] + ("\n" + body + "\n") * int(m.group(1)) + text[c + 1:]
+            continue
+        m = _RE_SWITCH_SLOT.search(text)
+        if m:
+            o = m.end() - 1
+            c = _match_brace(text, o)
+            inner = text[o + 1:c]
+            d = _RE_DEFAULT.search(inner)
+            if not d:
+                raise ValueError("switch HiveSlot without a default branch")
+            text = text[:m.start()] + "\n" + inner[d.end():] + "\n" + text[c + 1:]
+            continue
+        m = _RE_IF_BEES.search(text)
+        if m:
+            o = m.end() - 1
+            c = _match_brace(text, o)
+            keep = text[o + 1:c]
+            rest = text[c + 1:]
+            e = re.match(r"\s*else\s*\{", rest, re.I)
+            if e:
+                rest = rest[_match_brace(rest, e.end() - 1) + 1:]
+            text = text[:m.start()] + "\n" + keep + "\n" + rest
+            continue
+        return text
+
+
 def convert_natro_path(text: str) -> dict[str, list[Step]]:
     """Convert the body of a Natro paths/*.ahk file.
 
@@ -252,6 +327,7 @@ def convert_natro_path(text: str) -> dict[str, list[Step]]:
     branch, also {"cannon": steps}. Unknown lines raise ValueError so nothing is
     silently dropped.
     """
+    text = _flatten_natro(text)
     branches: dict[str, list[Step]] = {}
     current = "walk"
     pending: list[Step] = []
