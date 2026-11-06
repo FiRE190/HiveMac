@@ -1,0 +1,59 @@
+{
+ "name": "strawberry",
+ "source": "NatroMacro paths/gtf-strawberry.ahk (walk branch)",
+ "walk_speed": 28.0,
+ "notes": "Converted from Natro Macro (GPL-3.0). Hold steps are at walk speed 28.",
+ "steps": [
+  {
+   "type": "gotoramp"
+  },
+  {
+   "type": "walk",
+   "keys": [
+    "s",
+    "a"
+   ],
+   "tiles": 67.5
+  },
+  {
+   "type": "rotate",
+   "direction": "right",
+   "count": 4
+  },
+  {
+   "type": "walk",
+   "keys": [
+    "w"
+   ],
+   "tiles": 31.0
+  },
+  {
+   "type": "walk",
+   "keys": [
+    "w",
+    "a"
+   ],
+   "tiles": 7.0
+  },
+  {
+   "type": "walk",
+   "keys": [
+    "a"
+   ],
+   "tiles": 33.25
+  },
+  {
+   "type": "walk",
+   "keys": [
+    "w",
+    "a"
+   ],
+   "tiles": 6.75
+  },
+  {
+   "type": "rotate",
+   "direction": "left",
+   "count": 2
+  }
+ ]
+}

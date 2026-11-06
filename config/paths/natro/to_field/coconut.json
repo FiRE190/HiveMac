@@ -1,0 +1,143 @@
+{
+ "name": "coconut",
+ "source": "NatroMacro paths/gtf-coconut.ahk (walk branch)",
+ "walk_speed": 28.0,
+ "notes": "Converted from Natro Macro (GPL-3.0). Hold steps are at walk speed 28.",
+ "steps": [
+  {
+   "type": "gotoramp"
+  },
+  {
+   "type": "hold",
+   "keys": [
+    "space",
+    "d"
+   ],
+   "seconds": 0.1
+  },
+  {
+   "type": "walk",
+   "keys": [
+    "d"
+   ],
+   "tiles": 2.0
+  },
+  {
+   "type": "walk",
+   "keys": [
+    "d",
+    "w"
+   ],
+   "tiles": 1.8
+  },
+  {
+   "type": "walk",
+   "keys": [
+    "d"
+   ],
+   "tiles": 30.0
+  },
+  {
+   "type": "hold",
+   "keys": [
+    "space"
+   ],
+   "seconds": 0.3
+  },
+  {
+   "type": "walk",
+   "keys": [
+    "d"
+   ],
+   "tiles": 4.0
+  },
+  {
+   "type": "walk",
+   "keys": [
+    "w"
+   ],
+   "tiles": 5.0
+  },
+  {
+   "type": "walk",
+   "keys": [
+    "d"
+   ],
+   "tiles": 3.0
+  },
+  {
+   "type": "hold",
+   "keys": [
+    "space"
+   ],
+   "seconds": 0.3
+  },
+  {
+   "type": "walk",
+   "keys": [
+    "w"
+   ],
+   "tiles": 6.0
+  },
+  {
+   "type": "walk",
+   "keys": [
+    "a",
+    "w"
+   ],
+   "tiles": 2.0
+  },
+  {
+   "type": "walk",
+   "keys": [
+    "w"
+   ],
+   "tiles": 8.0
+  },
+  {
+   "type": "walk",
+   "keys": [
+    "w",
+    "d"
+   ],
+   "tiles": 11.0
+  },
+  {
+   "type": "hold",
+   "keys": [
+    "w",
+    "space"
+   ],
+   "seconds": 0.2
+  },
+  {
+   "type": "hold",
+   "keys": [
+    "w"
+   ],
+   "seconds": 1.1
+  },
+  {
+   "type": "hold",
+   "keys": [
+    "w",
+    "space"
+   ],
+   "seconds": 0.2
+  },
+  {
+   "type": "walk",
+   "keys": [
+    "w"
+   ],
+   "tiles": 18.0
+  },
+  {
+   "type": "walk",
+   "keys": [
+    "a"
+   ],
+   "tiles": 13.5
+  }
+ ]
+}

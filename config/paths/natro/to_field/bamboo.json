@@ -1,0 +1,51 @@
+{
+ "name": "bamboo",
+ "source": "NatroMacro paths/gtf-bamboo.ahk (walk branch)",
+ "walk_speed": 28.0,
+ "notes": "Converted from Natro Macro (GPL-3.0). Hold steps are at walk speed 28.",
+ "steps": [
+  {
+   "type": "gotoramp"
+  },
+  {
+   "type": "walk",
+   "keys": [
+    "s",
+    "a"
+   ],
+   "tiles": 67.5
+  },
+  {
+   "type": "rotate",
+   "direction": "right",
+   "count": 4
+  },
+  {
+   "type": "walk",
+   "keys": [
+    "w"
+   ],
+   "tiles": 23.5
+  },
+  {
+   "type": "walk",
+   "keys": [
+    "w",
+    "d"
+   ],
+   "tiles": 31.5
+  },
+  {
+   "type": "walk",
+   "keys": [
+    "d"
+   ],
+   "tiles": 10.0
+  },
+  {
+   "type": "rotate",
+   "direction": "right",
+   "count": 2
+  }
+ ]
+}

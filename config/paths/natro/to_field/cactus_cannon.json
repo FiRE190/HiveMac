@@ -1,0 +1,54 @@
+{
+ "name": "cactus_cannon",
+ "source": "NatroMacro paths/gtf-cactus.ahk (cannon branch)",
+ "walk_speed": 28.0,
+ "notes": "Converted from Natro Macro (GPL-3.0). Hold steps are at walk speed 28.",
+ "steps": [
+  {
+   "type": "gotoramp"
+  },
+  {
+   "type": "gotocannon"
+  },
+  {
+   "type": "rotate",
+   "direction": "right",
+   "count": 3
+  },
+  {
+   "type": "hold",
+   "keys": [
+    "w"
+   ],
+   "seconds": 0.1
+  },
+  {
+   "type": "tap",
+   "key": "e"
+  },
+  {
+   "type": "hold",
+   "keys": [
+    "w"
+   ],
+   "seconds": 0.967
+  },
+  {
+   "type": "wait",
+   "seconds": 2.6
+  },
+  {
+   "type": "tap",
+   "key": "space"
+  },
+  {
+   "type": "wait",
+   "seconds": 1.5
+  },
+  {
+   "type": "rotate",
+   "direction": "left",
+   "count": 3
+  }
+ ]
+}

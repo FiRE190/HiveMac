@@ -1,0 +1,49 @@
+{
+ "name": "rose_cannon",
+ "source": "NatroMacro paths/gtf-rose.ahk (cannon branch)",
+ "walk_speed": 28.0,
+ "notes": "Converted from Natro Macro (GPL-3.0). Hold steps are at walk speed 28.",
+ "steps": [
+  {
+   "type": "gotoramp"
+  },
+  {
+   "type": "gotocannon"
+  },
+  {
+   "type": "rotate",
+   "direction": "right",
+   "count": 2
+  },
+  {
+   "type": "hold",
+   "keys": [
+    "w"
+   ],
+   "seconds": 0.1
+  },
+  {
+   "type": "tap",
+   "key": "e"
+  },
+  {
+   "type": "hold",
+   "keys": [
+    "w"
+   ],
+   "seconds": 0.58
+  },
+  {
+   "type": "wait",
+   "seconds": 3.05
+  },
+  {
+   "type": "tap",
+   "key": "space"
+  },
+  {
+   "type": "wait",
+   "seconds": 2.0
+  }
+ ]
+}

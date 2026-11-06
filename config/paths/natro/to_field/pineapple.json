@@ -1,0 +1,84 @@
+{
+ "name": "pineapple",
+ "source": "NatroMacro paths/gtf-pineapple.ahk (walk branch)",
+ "walk_speed": 28.0,
+ "notes": "Converted from Natro Macro (GPL-3.0). Hold steps are at walk speed 28.",
+ "steps": [
+  {
+   "type": "gotoramp"
+  },
+  {
+   "type": "walk",
+   "keys": [
+    "s",
+    "a"
+   ],
+   "tiles": 67.5
+  },
+  {
+   "type": "rotate",
+   "direction": "right",
+   "count": 4
+  },
+  {
+   "type": "walk",
+   "keys": [
+    "w"
+   ],
+   "tiles": 30.0
+  },
+  {
+   "type": "walk",
+   "keys": [
+    "w",
+    "d"
+   ],
+   "tiles": 20.0
+  },
+  {
+   "type": "rotate",
+   "direction": "right",
+   "count": 2
+  },
+  {
+   "type": "walk",
+   "keys": [
+    "w"
+   ],
+   "tiles": 43.5
+  },
+  {
+   "type": "walk",
+   "keys": [
+    "d"
+   ],
+   "tiles": 18.0
+  },
+  {
+   "type": "walk",
+   "keys": [
+    "w"
+   ],
+   "tiles": 6.0
+  },
+  {
+   "type": "rotate",
+   "direction": "left",
+   "count": 2
+  },
+  {
+   "type": "walk",
+   "keys": [
+    "w"
+   ],
+   "tiles": 65.5
+  },
+  {
+   "type": "walk",
+   "keys": [
+    "d"
+   ],
+   "tiles": 1.5
+  }
+ ]
+}
