@@ -1,6 +1,6 @@
 # HiveMac
 
-[![check](https://github.com/FiRE190/HiveMac/actions/workflows/check.yml/badge.svg)](https://github.com/FiRE190/HiveMac/actions/workflows/check.yml)
+[![check](https://github.com/jonathanbrantner/HiveMac/actions/workflows/check.yml/badge.svg)](https://github.com/jonathanbrantner/HiveMac/actions/workflows/check.yml)
 ![status: beta](https://img.shields.io/badge/status-beta-f2b134)
 ![macOS 14+](https://img.shields.io/badge/macOS-14%2B-lightgrey)
 
@@ -9,6 +9,11 @@ how long to stay on each, and press Start.
 
 > **Beta.** It builds, passes its tests and runs against a simulated game, but it has had very
 > little time in the real game. Expect rough edges. Bug reports are welcome.
+
+<p align="center">
+  <img src="docs/images/shot-fields.png" width="360" alt="Fields tab">
+  <img src="docs/images/shot-macro.png" width="360" alt="Macro tab">
+</p>
 
 ## Good to know first
 
@@ -50,7 +55,7 @@ how long to stay on each, and press Start.
 There is no download yet. Build it yourself:
 
 ```sh
-git clone https://github.com/FiRE190/HiveMac.git
+git clone https://github.com/jonathanbrantner/HiveMac.git
 cd HiveMac/swift
 scripts/make-app.sh
 open build/HiveMac.app            # or copy it to /Applications
